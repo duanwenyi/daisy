@@ -88,6 +88,14 @@ module TH;
 			   .hrst_n	(hrest_n)
 			   );
 
+   reg [31:0] 	    cnt;
+
+   always @(posedge aclk or negedge arest_n)
+     if(~arest_n)
+       cnt    <= 32'b0;
+     else
+       cnt    <= cnt + 1;
+
    
 endmodule // TH
 

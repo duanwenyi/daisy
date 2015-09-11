@@ -5,7 +5,8 @@
 void daisy_drv_init();
 void daisy_stop();
 
-uint64_t daisy_query(char *signal);
+uint32_t daisy_query(char *signal);
+void     daisy_wait(char *signal, uint32_t val, int mode);
 
 void eva_delay(int cycle);
 

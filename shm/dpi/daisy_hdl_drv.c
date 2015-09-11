@@ -21,6 +21,7 @@ void daisy_hdl_init(){
 }
 
 void daisy_monitor(){
+  int         succ;  // 1:success get value  0: failure
 
   if( face_t->action == DAISY_CLEAN ){
     face_t->ob_tok = 0;
@@ -28,7 +29,28 @@ void daisy_monitor(){
     face_t->action = DAISY_IDLE;
   }else if( face_t->action == DAISY_ASK ){
 
-    face_t->action = DAISY_IDLE;
+    face_t->answer = evaScopeGet(face_t->lang, &succ);
+    if(succ){
+      fprintf(stderr, " @Daisy query : %s  : 0x%x\n", face_t->lang, face_t->answer);  
+      face_t->action = DAISY_IDLE;
+    }else{
+      fprintf(stderr, " @Daisy query : %s  : 0x%x  failured !\n", face_t->lang, face_t->answer);  
+      face_t->action = DAISY_CRY;
+    }
+  }else if( face_t->action == DAISY_WAIT ){
+
+    face_t->answer = evaScopeGet(face_t->lang, &succ);
+    if(succ){
+      if( (face_t->wmode && (face_t->val == face_t->answer)) ||
+	  (!face_t->wmode && (face_t->val != face_t->answer)) ){
+	fprintf(stderr," @Daisy waited : [%s] %s 0x%x \n",
+		face_t->lang, face_t->wmode ? "==":"!=", face_t->val );
+	face_t->action = DAISY_IDLE;
+      }
+    }else{
+      fprintf(stderr, " @Daisy query : %s  : 0x%x  failured !\n", face_t->lang, face_t->answer);  
+      face_t->action = DAISY_CRY;
+    }
   }else if( face_t->action == DAISY_STOP ){
   
     fprintf(stderr, " @Daisy's STOP OP detected , exit simulation now.\n");  
@@ -41,10 +63,9 @@ void daisy_monitor(){
   face_t->ob_tok++;
 }
 
-int evaScopeGet(char *path){
+int evaScopeGet(char *path, int *succ){
   vpiHandle   net;
   s_vpi_value val;
-
   net = vpi_handle_by_name(path, NULL);
 
   if( net == NULL){
@@ -56,10 +77,12 @@ int evaScopeGet(char *path){
 
   if(Vector_size > 32){
     fprintf(stderr,"@evaScopeGet: %s vector size %d > 32 not support !\n", path, Vector_size);
+    *succ = 0;
     return 0;
   }{
     val.format = vpiIntVal;
     vpi_get_value(net, & val);
+    *succ = 1;
 
     return val.value.integer;
   }

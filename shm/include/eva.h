@@ -17,6 +17,8 @@
 #define DAISY_ANS   DAISY_IDLE    // answer
 #define DAISY_CRY   0x44444       // daisy cry ! the OP failed !
 
+#define DAISY_WAIT  0x5a5a5a5a    // wait a signal for special value
+
 #define DAISY_STOP  0x33333333    // stop the HDL simulator
 
 #define DAISY_LANG_NUMS 256         // this may not enough  !!!  update later !
@@ -41,11 +43,11 @@ typedef struct DAISY_FACE_S {
 
   uint32_t action;  // Daisy controller
 
-  uint32_t req_bytes;
-
   char     lang[DAISY_LANG_NUMS];
 
-  uint64_t answer;
+  uint32_t wmode;   // wait mode : 1:equal  0: not equal
+  uint32_t val;
+  uint32_t answer;
 
 }DAISY_FACE, *DAISY_FACE_p;
 

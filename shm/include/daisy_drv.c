@@ -70,7 +70,7 @@ void daisy_stop(){
   face_t->action = DAISY_STOP;
 }
 
-uint64_t daisy_query(char *signal){
+uint32_t daisy_query(char *signal){
   while(face_t->action != DAISY_IDLE){
   }
   
@@ -84,6 +84,7 @@ uint64_t daisy_query(char *signal){
   fprintf(stderr,"       signal : %s\n",signal );
 #endif
   while(face_t->action == DAISY_ASK){
+    usleep(1);
   }
 
   barrier();
@@ -94,7 +95,29 @@ uint64_t daisy_query(char *signal){
   }else{
     return face_t->answer;
   }
+  
+}
 
+void daisy_wait(char *signal, uint32_t val, int mode){
+   // mode :  1: equal to    0: not equal to
+  while(face_t->action != DAISY_IDLE){
+  }
+
+  barrier();
+
+  memcpy(face_t->lang , signal, DAISY_LANG_NUMS);
+  face_t->wmode  = mode;
+  face_t->val    = val;
+
+  barrier();
+  face_t->action = DAISY_WAIT;
+
+  while(face_t->action == DAISY_WAIT){
+    usleep(1);
+  }
+
+  fprintf(stderr," @Daisy waited : [%s] %s 0x%x \n",
+	  face_t->lang, face_t->wmode ? "==":"!=", face_t->val );
 }
 
 void eva_delay(int cycle){
