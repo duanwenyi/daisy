@@ -14,57 +14,71 @@ void *daisy_monitor_handler(void *){
 #else
 void daisy_monitor_handler(void){
 #endif
-  uint64_t local_time = 0;
+		uint64_t local_time = 0;
+	
+		uint64_t pre_tick = 0;
+	
+		uint64_t max_rate = 0;
+		uint64_t min_rate = 0xFFFFFFFFFFF00000;
+		uint64_t eva_rate = 0;
+	
+		uint64_t initial = 1;
 
-  uint64_t max_rate = 0;
-  uint64_t min_rate = 0xFFFFFFFFFFFFFFFF;
-  uint64_t eva_rate = 0;
+		while(1){
+		
+			pre_tick = face_t->tick;
+			sleep(1);
+			eva_rate = face_t->tick - pre_tick;
 
-  while(1){
-    sleep(1);
-    local_time++;
-    eva_rate = face_t->ob_tok/local_time;
-    if(eva_rate > max_rate)
-      max_rate = eva_rate;
+			if(initial ){
+				if(eva_rate != 0){
+					max_rate = eva_rate;
+					min_rate = eva_rate;
+				}
+			}
+		
+			local_time++;
+			if(eva_rate > max_rate)
+				max_rate = eva_rate;
+			
+			if( (eva_rate < min_rate)  && 
+				(eva_rate !=0 ) &&
+				( (uint64_t)(min_rate - eva_rate) < (eva_rate/4) )  // fix stop action case
+				)
+				min_rate = eva_rate;
 
-    if(eva_rate < min_rate)
-      min_rate = eva_rate;
+			fprintf(stderr, " @Daisy's Monitor: %lld S  - HDL: 0x%llx CYCLE  --> %lld (CYCLE/S) [MAX/MIN][%lld / %lld] CYCLE/S\r",
+					local_time, face_t->tick, eva_rate, max_rate,  min_rate);  
 
-    fprintf(stderr, " @Daisy's Monitor: %lld S  - HDL: [0x%llx | 0x%llx] CYCLE  --> %lld (CYCLE/S) [MAX/MIN][%lld / %lld] CYCLE/S\r",
-	    local_time, face_t->ob_tok, face_t->ob_tik,  eva_rate, max_rate,  min_rate);  
-    
-  }
-
+			initial = 0;
+		}
 }
 
-void daisy_drv_init(){
-  int ret;
-  face_t = (DAISY_FACE *)eva_map(0);
-  if( face_t->action != DAISY_IDLE){
-    fprintf(stderr, " @Daisy's Boy (HDL) is not detected start first , exit .\n");  
-    exit(EXIT_FAILURE);  
-  }
-  
-  face_t->action = DAISY_CLEAN;
+ void daisy_drv_init(){
+	 int ret;
+	 face_t = (DAISY_FACE *)eva_map(0);
+	 fprintf(stderr, " @Daisy's Boy (HDL) is 0x%x.\n",face_t->action);  
+	 face_t->action = DAISY_DOOR;
 
-  while(face_t->action == DAISY_CLEAN ){
-    usleep(1);
-  }
+	 while(face_t->action == DAISY_DOOR ){
+		 usleep(1);
+	 }
+	 
   
 #ifdef __cplusplus
-  ret = pthread_create(&daisy_monitor, NULL, daisy_monitor_handler, NULL);
+	 ret = pthread_create(&daisy_monitor, NULL, daisy_monitor_handler, NULL);
 #else
-  ret = pthread_create(&daisy_monitor, NULL, (void *)daisy_monitor_handler, NULL);
+	 ret = pthread_create(&daisy_monitor, NULL, (void *)daisy_monitor_handler, NULL);
 #endif
 
-  if(ret != 0){
-    fprintf(stderr, " @Daisy's Monitor thread created failed , exit .\n");  
-    exit(EXIT_FAILURE);  
-  }
+	 if(ret != 0){
+		 fprintf(stderr, " @Daisy's Monitor thread created failed , exit .\n");  
+		 exit(EXIT_FAILURE);  
+	 }
   
-  fprintf(stderr, " @Daisy's nice day ...\n");  
+	 fprintf(stderr, " @Daisy's nice day ...\n");  
 
-}
+ }
 
 void daisy_stop(){
   face_t->action = DAISY_STOP;
@@ -121,11 +135,11 @@ void daisy_wait(char *signal, uint32_t val, int mode){
 }
 
 void eva_delay(int cycle){
-  uint64_t mark = face_t->ob_tok;
+  uint64_t mark = face_t->tick;
   uint64_t mark2;
   int grap;
   do{
-    mark2 = face_t->ob_tok;
+    mark2 = face_t->tick;
     grap = mark2 - mark;
     if(cycle > 20)
       usleep(1);

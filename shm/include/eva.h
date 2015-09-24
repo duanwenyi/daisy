@@ -11,7 +11,7 @@
 #include <sys/ipc.h>
 
 #define DAISY_IDLE   0x51339
-#define DAISY_CLEAN  0x77777      // clear ob_tok to zero
+#define DAISY_DOOR   0x77777      // door bell
 
 #define DAISY_ASK   0xa5a5a5a5    // ask
 #define DAISY_ANS   DAISY_IDLE    // answer
@@ -37,9 +37,7 @@
 typedef struct DAISY_FACE_S {
   // One 32 bits counter be full to 0xFFFF_FFFF only need about ~ 3 hour
   // So 64 bits is better
-  uint64_t ob_tik;  // always increase when posedge clock
-
-  uint64_t ob_tok;  // always increase when posedge clock  but clean to zero when DAISY_CLEAN
+  uint64_t tick;  // always increase when posedge clock
 
   uint32_t action;  // Daisy controller
 

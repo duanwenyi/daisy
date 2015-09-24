@@ -18,7 +18,7 @@ void *eva_map(int do_init){
       fprintf(stderr, "shmat failed\n");  
       exit(EXIT_FAILURE);  
     }  
-  fprintf(stderr, " @Daisy initialed @key %x\n",key);  
+  fprintf(stderr, " @Daisy initialed @key %x [%d]\n",key,do_init);  
 
   if(do_init){
     face = (DAISY_FACE *)shm;
