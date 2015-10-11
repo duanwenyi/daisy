@@ -1,6 +1,9 @@
 #ifndef __EVA_H__
 #define __EVA_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include <unistd.h>  
 #include <stdlib.h>  
@@ -51,11 +54,15 @@ typedef struct DAISY_FACE_S {
 
 
 void *eva_map(int do_init);
-void eva_unmap();
+void eva_unmap(void *map);
 
 void eva_destory();
 
 /* Optimization barrier */  
 #define barrier() __asm__ __volatile__("": : :"memory")  
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

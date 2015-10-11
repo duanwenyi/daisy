@@ -1,3 +1,6 @@
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include <signal.h> 
 #include "daisy_hdl_drv.h"
@@ -14,7 +17,7 @@ DAISY_FACE_p face_t;
 void daisy_hdl_init(){
   memset(&face_t, 0, sizeof(DAISY_FACE));
 
-  face_t = eva_map(1);
+  face_t = (DAISY_FACE_S*) eva_map(1);
 
   fprintf(stderr, " @Daisy's Boy (HDL) is set ALIVE OK .\n");  
 
@@ -88,3 +91,8 @@ int evaScopeGet(char *path, int *succ){
   }
   
 }
+
+
+#ifdef __cplusplus
+}
+#endif

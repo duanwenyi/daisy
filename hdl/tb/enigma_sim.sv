@@ -11,6 +11,7 @@ module ENIGMA_SIM(/*autoarg*/
    input 		 rst_n;
 
    parameter     TEST_ID = 0;
+   parameter     DLY     = 0.1ns;
 
    // port A
    output bit [127:0] payload_a;
@@ -43,9 +44,9 @@ module ENIGMA_SIM(/*autoarg*/
    
    chandle 		  app;
 
-   import "DPI-C" function chandle engima_init( int TEST_ID);
+   import "DPI-C" function chandle enigma_init( int TEST_ID);
 
-   import "DPI-C" function void engima_port_com_sim( chandle      app,
+   import "DPI-C" function void enigma_port_com_sim( chandle      app,
 													 input 		  ready_a, 
 													 input 		  ready_b, 
 
@@ -61,7 +62,7 @@ module ENIGMA_SIM(/*autoarg*/
    
 													 
 
-   import "DPI-C" function void engima_port_A_sim( chandle       app,
+   import "DPI-C" function void enigma_port_A_sim( chandle       app,
 												   output [31:0] payload_a_0,
 												   output [31:0] payload_a_1,
 												   output [31:0] payload_a_2,
@@ -71,7 +72,7 @@ module ENIGMA_SIM(/*autoarg*/
 												   output 		 valid_a
 												   );
 
-   import "DPI-C" function void engima_port_B_sim( chandle       app,
+   import "DPI-C" function void enigma_port_B_sim( chandle       app,
 												   output [31:0] payload_b_0,
 												   output [31:0] payload_b_1,
 												   output [31:0] payload_b_2,
@@ -81,7 +82,7 @@ module ENIGMA_SIM(/*autoarg*/
 												   output 		 valid_b
 												   );
 
-   import "DPI-C" function void engima_port_C_sim( chandle       app,
+   import "DPI-C" function void enigma_port_C_sim( chandle       app,
 												   output 		 ready_c,
 
 												   output 		 conflict_c,
@@ -92,12 +93,12 @@ module ENIGMA_SIM(/*autoarg*/
 												   );
 
    initial begin
-	  app = engima_init(TEST_ID);
+	  app = enigma_init(TEST_ID);
    end
    
    always @(posedge clk)
 	 if(~rst_n)
-	   engima_port_com_sim( app,
+	   enigma_port_com_sim( app,
 							ready_a,
 							ready_b,
 
@@ -112,38 +113,38 @@ module ENIGMA_SIM(/*autoarg*/
 
    always @(posedge clk)
 	 if(~rst_n)
-	   engima_port_A_sim( app,
-						  payload_a[ 31: 0],
-						  payload_a[ 63:32],
-						  payload_a[ 95:64],
-						  payload_a[127:96],
-						  id_a,
-						  qos_a,
-						  valid_a
-						  );
+	   #DLY enigma_port_A_sim( app,
+							   payload_a[ 31: 0],
+							   payload_a[ 63:32],
+							   payload_a[ 95:64],
+							   payload_a[127:96],
+							   id_a,
+							   qos_a,
+							   valid_a
+							   );
 
    always @(posedge clk)
 	 if(~rst_n)
-	   engima_port_B_sim( app,
-						  payload_b[ 31: 0],
-						  payload_b[ 63:32],
-						  payload_b[ 95:64],
-						  payload_b[127:96],
-						  id_b,
-						  qos_b,
-						  valid_b
-						  );
+	   #DLY enigma_port_B_sim( app,
+							   payload_b[ 31: 0],
+							   payload_b[ 63:32],
+							   payload_b[ 95:64],
+							   payload_b[127:96],
+							   id_b,
+							   qos_b,
+							   valid_b
+							   );
 
    always @(posedge clk)
 	 if(~rst_n)
-	   engima_port_C_sim( app,
-						  ready_c,
- 						  
-						  conflict_c,
-						  release_c,
-						  releaseid_c,
-
-						  error
-						  );
+	   #DLY enigma_port_C_sim( app,
+							   ready_c,
+ 	   
+							   conflict_c,
+							   release_c,
+							   releaseid_c,
+	   
+							   error
+							   );
 
 endmodule

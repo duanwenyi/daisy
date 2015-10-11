@@ -1,3 +1,7 @@
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "eva.h"
 
 void *eva_map(int do_init){
@@ -73,3 +77,7 @@ void eva_destory(){
   exit(EXIT_SUCCESS);  
 }
 
+
+#ifdef __cplusplus
+}
+#endif
