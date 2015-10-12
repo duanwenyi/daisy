@@ -49,8 +49,13 @@ class EnigmaSim
  public:
 	EnigmaSim();
 	~EnigmaSim();
-
+	
 	void setRandomSeed(int seed);
+
+	void loadStimulate();
+
+	int                 stim_mode;  // 1: manual   0:auto random
+	
 
 	void joinOneFlit(vector<ENIGMA_FLIT> group, int port, int id, int qos);
 
@@ -65,6 +70,9 @@ class EnigmaSim
 	vector<ENIGMA_FLIT> dutPending;
 
 	vector<ENIGMA_FLIT> portC;
+
+	vector<ENIGMA_FLIT> conflictC;
+	vector<ENIGMA_FLIT> releaseC;
 
 	ENIGMA_FLIT         ocell;             // output Flit of C port
 	int                 pre_out_vld_mark;  // pre-cycle output valid

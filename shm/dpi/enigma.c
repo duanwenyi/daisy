@@ -1,5 +1,8 @@
 #include <cstdio>
 #include <cstdlib>
+#include <iostream> 
+#include <sstream> 
+#include <fstream>
 #include "enigma.h"
 
 EnigmaSim::EnigmaSim(){
@@ -8,14 +11,86 @@ EnigmaSim::EnigmaSim(){
 	dutActive.clear();
 	dutPending.clear();
 	portC.clear();
+	
+	conflictC.clear();
+	releaseC.clear();
 
 	release_delay.clear();
+	stim_mode = 0;
+
+	srand(0);
+
+	loadStimulate();
 
 	genOneFlitA( 5, LEVEL2);
 	genOneFlitB( 5, LEVEL3);
 
 	fprintf(stderr," Enigma Simulator initialed !\n");
 	
+}
+
+void EnigmaSim::setRandomSeed(int seed){
+	srand(seed);
+}
+
+void EnigmaSim::loadStimulate(){
+	std::ifstream fin("stim.txt", std::ios::in); 
+	char line[1024]={0}; 
+	std::string port  = ""; 
+	std::string id_c  = ""; 
+	std::string qos_c = ""; 
+	int id  = 0;
+	int qos = 0;
+	if(!fin){
+		std::cout << " +No stim.txt file . Begin generate stimualte with auto random mode !\n" << std::endl;
+	}else{
+		std::cout << "Port ID Qos  --> loading " << std::endl;
+		stim_mode = 1;
+
+		while(fin.getline(line, sizeof(line))) 
+			{ 
+				std::stringstream word(line); 
+				word >> port; 
+				word >> id_c; 
+				word >> qos_c; 
+
+				id  = std::atoi( id_c.c_str());
+				qos = std::atoi( qos_c.c_str());
+
+				if(qos == -1){
+					qos = rand() & 0x3;
+				}
+				
+				if(port.compare("A") == 0){
+					if(id == -1){
+						id = rand() & 0x1F;
+					}
+
+					genOneFlitA( id, qos);
+				}else if(port.compare("B") == 0){
+					if(id == -1){
+						id = rand() & 0x1F;
+					}
+
+					genOneFlitB( id, qos);
+				}else if(port.compare("C") == 0){
+					if(id == -1){
+						id = rand() & 0x3F;
+					}
+					joinOneFlit( conflictC, !!(id & 0x20) , id & 0x1F, qos);
+				}else if(port.compare("R") == 0){
+					if(id == -1){
+						id = rand() & 0x3F;
+					}
+					joinOneFlit( releaseC, !!(id & 0x20) , id & 0x1F, qos);
+				}
+
+				std::cout << port << " " << id << " " << qos << std::endl; 
+			} 
+		fin.clear(); 
+	}
+	fin.close(); 
+
 }
 
 void EnigmaSim::joinOneFlit(vector<ENIGMA_FLIT> group, int port, int id, int qos){
