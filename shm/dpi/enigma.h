@@ -131,3 +131,106 @@ extern "C" {
 							svBit *		  error
 							);
 }
+
+
+typedef struct ENIGMA_BUF_SIGNAL_S{
+
+	// pre-cycle singal value
+	int pre_ready_a; 	  
+	int pre_ready_b;	  
+	int pre_payload_c_0;
+	int pre_payload_c_1;
+	int pre_payload_c_2;
+	int pre_payload_c_3;
+	int pre_id_c;
+	int pre_qos_c;
+	int pre_valid_c;
+
+	// cur-cycle singal value
+	int ready_c;
+	int conflict_c;
+	int release_c;
+	int releaseid_c;
+	
+	// port A
+	int payload_a_0;
+	int payload_a_1;
+	int payload_a_2;
+	int payload_a_3;
+	int id_a;
+	int qos_a;
+	int valid_a;
+
+	// port B
+	int payload_b_0;
+	int payload_b_1;
+	int payload_b_2;
+	int payload_b_3;
+	int id_b;
+	int qos_b;
+	int valid_b;
+
+}ENIGMA_BUF_SIGNAL, *ENIGMA_BUF_SIGNAL_p;
+
+class EnigmaBuf
+{
+ public:
+	EnigmaBuf();
+	~EnigmaBuf();
+	
+	vector<ENIGMA_FLIT> portA;
+	vector<ENIGMA_FLIT> portB;
+
+	vector<ENIGMA_FLIT> Pending;
+
+	ENIGMA_FLIT         ocell;             // output Flit of C port
+	int                 pre_out_vld_mark;  // pre-cycle output valid
+
+	ENIGMA_BUF_SIGNAL  signal;
+
+};
+
+extern "C" {
+
+	void *enigma_buf_init();
+
+	void enigma_buf_port_o( void        * app,
+							svBit       * ready_a, 	  
+							svBit       * ready_b,	  
+
+							svBitVecVal * payload_c_0,
+							svBitVecVal * payload_c_1,
+							svBitVecVal * payload_c_2,
+							svBitVecVal * payload_c_3,
+							svBitVecVal * id_c,
+							svBitVecVal * qos_c,
+							svBit       * valid_c
+							);
+   
+													 
+
+	void enigma_buf_port_i( void *             app,
+							const svBitVecVal  payload_a_0,
+							const svBitVecVal  payload_a_1,
+							const svBitVecVal  payload_a_2,
+							const svBitVecVal  payload_a_3,
+							const svBitVecVal  id_a,
+							const svBitVecVal  qos_a,
+							const svBit  	   valid_a,
+
+							const svBitVecVal  payload_b_0,
+							const svBitVecVal  payload_b_1,
+							const svBitVecVal  payload_b_2,
+							const svBitVecVal  payload_b_3,
+							const svBitVecVal  id_b,
+							const svBitVecVal  qos_b,
+							const svBit  	   valid_b,
+
+							const svBit  	   ready_c,
+
+							const svBit  	   conflict_c,
+							const svBit  	   release_c,
+							const svBitVecVal  releaseid_c
+							);
+
+}
