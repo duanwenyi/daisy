@@ -77,12 +77,12 @@ void EnigmaSim::loadStimulate(){
 					if(id == -1){
 						id = rand() & 0x3F;
 					}
-					joinOneFlit( conflictC, !!(id & 0x20) , id & 0x1F, qos);
+					joinOneFlit( &conflictC, !!(id & 0x20) , id & 0x1F, qos);
 				}else if(port.compare("R") == 0){
 					if(id == -1){
 						id = rand() & 0x3F;
 					}
-					joinOneFlit( releaseC, !!(id & 0x20) , id & 0x1F, qos);
+					joinOneFlit( &releaseC, !!(id & 0x20) , id & 0x1F, qos);
 				}
 
 				std::cout << port << " " << id << " " << qos << std::endl; 
@@ -93,7 +93,7 @@ void EnigmaSim::loadStimulate(){
 
 }
 
-void EnigmaSim::joinOneFlit(vector<ENIGMA_FLIT> group, int port, int id, int qos){
+void EnigmaSim::joinOneFlit(vector<ENIGMA_FLIT> *group, int port, int id, int qos){
 	
 	ENIGMA_FLIT cell;
 	cell.port = port;  // 0:A   1:B
@@ -104,15 +104,15 @@ void EnigmaSim::joinOneFlit(vector<ENIGMA_FLIT> group, int port, int id, int qos
 	cell.payload[2] = port;
 	cell.payload[3] = (qos<<16) | (port<<6) | id;   // for output check
 
-	group.push_back( cell );
+	group->push_back( cell );
 }
 
 void EnigmaSim::genOneFlitA(int id, int qos){
-	joinOneFlit( portA, 0, id, qos);
+	joinOneFlit( &portA, 0, id, qos);
 }
 
 void EnigmaSim::genOneFlitB(int id, int qos){
-	joinOneFlit( portB, 1, id, qos);
+	joinOneFlit( &portB, 1, id, qos);
 }
 
 extern "C" {

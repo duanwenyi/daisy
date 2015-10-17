@@ -57,7 +57,7 @@ class EnigmaSim
 	int                 stim_mode;  // 1: manual   0:auto random
 	
 
-	void joinOneFlit(vector<ENIGMA_FLIT> group, int port, int id, int qos);
+	void joinOneFlit(vector<ENIGMA_FLIT> *group, int port, int id, int qos);
 
 	void genOneFlitA(int id, int qos);
 	void genOneFlitB(int id, int qos);
@@ -194,6 +194,8 @@ typedef struct ENIGMA_QOS_S {
 }ENIGMA_QOS, *ENIGMA_QOS_p;
 
 #define DIM_QOS_SEQ_THRESH 20
+#define ENIGMA_ID_MSK      0x1F
+#define ENIGMA_ID_EXP      0x20
 
 class EnigmaBuf
 {
@@ -213,6 +215,8 @@ class EnigmaBuf
     
     int  getHighestQos();
     int  getValidCellId();
+
+    void showFlitInfo(int chain_id);
 
     ENIGMA_BUF_MEM_S    mem;
     

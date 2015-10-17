@@ -88,7 +88,7 @@ module ENIGMA_BUFFER(/*autoarg*/
    end
    
    always @(posedge clk)
-	 if(~rst_n)
+	 if(rst_n)
 	   #0.1ns enigma_buf_port_o( app,
 								 ready_a,
 								 ready_b,
@@ -103,7 +103,7 @@ module ENIGMA_BUFFER(/*autoarg*/
 								 );
 
    always @(posedge clk)
-	 if(~rst_n)
+	 if(rst_n)
 	   enigma_buf_port_i( app,
 						  payload_a[ 31: 0],
 						  payload_a[ 63:32],

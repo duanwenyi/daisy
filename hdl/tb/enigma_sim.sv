@@ -97,7 +97,7 @@ module ENIGMA_SIM(/*autoarg*/
    end
    
    always @(posedge clk)
-	 if(~rst_n)
+	 if(rst_n)
 	   enigma_port_com_sim( app,
 							ready_a,
 							ready_b,
@@ -112,7 +112,7 @@ module ENIGMA_SIM(/*autoarg*/
 							);
 
    always @(posedge clk)
-	 if(~rst_n)
+	 if(rst_n)
 	   #DLY enigma_port_A_sim( app,
 							   payload_a[ 31: 0],
 							   payload_a[ 63:32],
@@ -124,7 +124,7 @@ module ENIGMA_SIM(/*autoarg*/
 							   );
 
    always @(posedge clk)
-	 if(~rst_n)
+	 if(rst_n)
 	   #DLY enigma_port_B_sim( app,
 							   payload_b[ 31: 0],
 							   payload_b[ 63:32],
@@ -136,7 +136,7 @@ module ENIGMA_SIM(/*autoarg*/
 							   );
 
    always @(posedge clk)
-	 if(~rst_n)
+	 if(rst_n)
 	   #DLY enigma_port_C_sim( app,
 							   ready_c,
  	   
