@@ -172,19 +172,61 @@ typedef struct ENIGMA_BUF_SIGNAL_S{
 
 }ENIGMA_BUF_SIGNAL, *ENIGMA_BUF_SIGNAL_p;
 
+typedef struct ENIGMA_FLIT_U_S {
+    int lock;
+	int id;
+	int qos;
+	int addr;    // 0 ~ 31
+}ENIGMA_FLIT_U, *ENIGMA_FLIT_U_p;
+
+#define ENIGMA_MEM_MAX_SIZE 24
+
+typedef struct ENIGMA_BUF_MEM_S {
+    int vld_bits;      // echo bit for one address , map to 0 ~ 31
+    int count;
+    int lock_count;
+	int payload[32][4];    // payload data
+}ENIGMA_BUF_MEM, *ENIGMA_BUF_MEM_p;
+
+typedef struct ENIGMA_QOS_S {
+    int vld;      // echo bit for one address , map to 0 ~ 31
+    int count;
+}ENIGMA_QOS, *ENIGMA_QOS_p;
+
+#define DIM_QOS_SEQ_THRESH 20
+
 class EnigmaBuf
 {
  public:
 	EnigmaBuf();
 	~EnigmaBuf();
 	
-	vector<ENIGMA_FLIT> portA;
-	vector<ENIGMA_FLIT> portB;
+	vector<ENIGMA_FLIT_U> chain;
 
-	vector<ENIGMA_FLIT> Pending;
+    bool isMemFull();
+    bool isMemNearFull();
+    bool isMemEmpty();
+    int  getFreeAddr();
+    void lockAllId(int id);
+    void unlockAllId(int id);
+    void consumOneCell(int id);
+    
+    int  getHighestQos();
+    int  getValidCellId();
 
-	ENIGMA_FLIT         ocell;             // output Flit of C port
-	int                 pre_out_vld_mark;  // pre-cycle output valid
+    ENIGMA_BUF_MEM_S    mem;
+    
+    bool isLowQosNotEmpty(int qos);
+
+    int   qos_count[4];      //  count valid FLIT same qos numbers
+
+	int   cur_chain_id;      // current chain selected cell id
+	int   last_chain_id;     // last chain selected cell id
+	int   pre_out_vld_mark;  // pre-cycle output valid
+
+    int   last_qos;
+    int   dim_qos_en;        // 
+    int   seq_qos_count;     // squence output the same QOS counter
 
 	ENIGMA_BUF_SIGNAL  signal;
 

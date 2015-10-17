@@ -3,7 +3,7 @@ module TH;
 
    // Clock & reset domain
    wire 	    clk;
-   wire 	    rest_n;
+   wire 	    rst_n;
 
    /*autowire*/
    // Beginning of automatic wires (for undeclared instantiated-module outputs)
@@ -30,19 +30,19 @@ module TH;
    //Replace regexp (default \(\w+\)\(,\) -> \1^I^I(\1^I),^J): 
    DAISY daisy(
 			   .clk		(clk	),
-			   .rest_n	(rest_n	)
+			   .rest_n	(rst_n	)
 			   );
    
    
    IVS_CLK_GEN ivs_clk_gen(
 						   // Outputs
 						   .clk		(clk),
-						   .rst_n	(rest_n)
+						   .rst_n	(rst_n)
 						   );
 
    reg [31:0] 	cnt;
-   always @(posedge clk or negedge rest_n)
-     if(~rest_n)
+   always @(posedge clk or negedge rst_n)
+     if(~rst_n)
        cnt    <= 32'b0;
      else
        cnt    <= cnt + 1;
