@@ -20,6 +20,8 @@ typedef struct ENIGMA_PORT_SIGNAL_S{
 	int id_c;
 	int qos_c;
 	int valid_c;
+    // debug using
+	int tick;
 
 	// pre-cycle singal value
 	int pre_valid_a;
@@ -86,17 +88,18 @@ extern "C" {
 
 	void *enigma_init( int TEST_ID);
 
-	void enigma_port_com_sim( void *            app,
-							  const svBit       ready_a, 	  
-							  const svBit       ready_b,	  
+	void enigma_port_com_sim( void *             app,
+							  const svBit        ready_a, 	  
+							  const svBit        ready_b,	  
 
-							  const svBitVecVal payload_c_0,
-							  const svBitVecVal payload_c_1,
-							  const svBitVecVal payload_c_2,
-							  const svBitVecVal payload_c_3,
-							  const svBitVecVal id_c,
-							  const svBitVecVal qos_c,
-							  const svBit       valid_c
+							  const svBitVecVal *payload_c_0,
+							  const svBitVecVal *payload_c_1,
+							  const svBitVecVal *payload_c_2,
+							  const svBitVecVal *payload_c_3,
+							  const svBitVecVal *id_c,
+							  const svBitVecVal *qos_c,
+							  const svBit        valid_c,
+							  const svBitVecVal *tick
 							  );
    
 													 
@@ -170,6 +173,8 @@ typedef struct ENIGMA_BUF_SIGNAL_S{
 	int qos_b;
 	int valid_b;
 
+    //debug using
+    int tick;
 }ENIGMA_BUF_SIGNAL, *ENIGMA_BUF_SIGNAL_p;
 
 typedef struct ENIGMA_FLIT_U_S {
@@ -250,33 +255,38 @@ extern "C" {
 							svBitVecVal * payload_c_3,
 							svBitVecVal * id_c,
 							svBitVecVal * qos_c,
-							svBit       * valid_c
+							svBit       * valid_c,
+                        
+                            // debug using
+                            svBitVecVal * chain_id,
+                            svBit       * pre_out_vld
 							);
    
 													 
 
 	void enigma_buf_port_i( void *             app,
-							const svBitVecVal  payload_a_0,
-							const svBitVecVal  payload_a_1,
-							const svBitVecVal  payload_a_2,
-							const svBitVecVal  payload_a_3,
-							const svBitVecVal  id_a,
-							const svBitVecVal  qos_a,
+							const svBitVecVal *payload_a_0,
+							const svBitVecVal *payload_a_1,
+							const svBitVecVal *payload_a_2,
+							const svBitVecVal *payload_a_3,
+							const svBitVecVal *id_a,
+							const svBitVecVal *qos_a,
 							const svBit  	   valid_a,
 
-							const svBitVecVal  payload_b_0,
-							const svBitVecVal  payload_b_1,
-							const svBitVecVal  payload_b_2,
-							const svBitVecVal  payload_b_3,
-							const svBitVecVal  id_b,
-							const svBitVecVal  qos_b,
+							const svBitVecVal *payload_b_0,
+							const svBitVecVal *payload_b_1,
+							const svBitVecVal *payload_b_2,
+							const svBitVecVal *payload_b_3,
+							const svBitVecVal *id_b,
+							const svBitVecVal *qos_b,
 							const svBit  	   valid_b,
 
 							const svBit  	   ready_c,
 
 							const svBit  	   conflict_c,
 							const svBit  	   release_c,
-							const svBitVecVal  releaseid_c
+							const svBitVecVal *releaseid_c,
+                            //debug using
+                            const svBitVecVal *tick
 							);
-
 }

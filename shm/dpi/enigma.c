@@ -18,6 +18,10 @@ EnigmaSim::EnigmaSim(){
 	release_delay.clear();
 	stim_mode = 0;
 
+    signal.pre_valid_a = 0;
+    signal.pre_valid_a = 0;
+    signal.pre_ready_c = 0;
+
 	srand(0);
 
 	loadStimulate();
@@ -99,12 +103,12 @@ void EnigmaSim::joinOneFlit(vector<ENIGMA_FLIT> *group, int port, int id, int qo
 	cell.port = port;  // 0:A   1:B
 	cell.id   = id  & 0x1F;
 	cell.qos  = qos & 0x3;
-	cell.payload[0] = id;
+	cell.payload[0] = id | (id<<8) |(port<<14);
 	cell.payload[1] = qos;
 	cell.payload[2] = port;
-	cell.payload[3] = (qos<<16) | (port<<6) | id;   // for output check
+	cell.payload[3] = rand();   // for output check
 
-	group->push_back( cell );
+	group->insert( group->begin(), cell );
 }
 
 void EnigmaSim::genOneFlitA(int id, int qos){
@@ -124,30 +128,32 @@ extern "C" {
 		return (void *)app;
 	}
 
-	void enigma_port_com_sim( void *            app,
-							  const svBit       ready_a, 	  
-							  const svBit       ready_b,	  
+	void enigma_port_com_sim( void *             app,
+							  const svBit        ready_a, 	  
+							  const svBit        ready_b,	  
 
-							  const svBitVecVal payload_c_0,
-							  const svBitVecVal payload_c_1,
-							  const svBitVecVal payload_c_2,
-							  const svBitVecVal payload_c_3,
-							  const svBitVecVal id_c,
-							  const svBitVecVal qos_c,
-							  const svBit       valid_c
+							  const svBitVecVal *payload_c_0,
+							  const svBitVecVal *payload_c_1,
+							  const svBitVecVal *payload_c_2,
+							  const svBitVecVal *payload_c_3,
+							  const svBitVecVal *id_c,
+							  const svBitVecVal *qos_c,
+							  const svBit        valid_c,
+							  const svBitVecVal *tick
 							  ){
 
 		EnigmaSim *sim = (EnigmaSim *)app;
 
 		sim->signal.ready_a       = ready_a    ;
 		sim->signal.ready_b    	  = ready_b    ;
-		sim->signal.payload_c_0	  = payload_c_0;
-		sim->signal.payload_c_1	  = payload_c_1;
-		sim->signal.payload_c_2	  = payload_c_2;
-		sim->signal.payload_c_3	  = payload_c_3;
-		sim->signal.id_c       	  = id_c       & 0x3F;  // 6 bits
-		sim->signal.qos_c      	  = qos_c      & 0x3;   // 2 bits
+		sim->signal.payload_c_0	  = *payload_c_0;
+		sim->signal.payload_c_1	  = *payload_c_1;
+		sim->signal.payload_c_2	  = *payload_c_2;
+		sim->signal.payload_c_3	  = *payload_c_3;
+		sim->signal.id_c       	  = *id_c       & 0x3F;  // 6 bits
+		sim->signal.qos_c      	  = *qos_c      & 0x3;   // 2 bits
 		sim->signal.valid_c    	  = valid_c    ;
+		sim->signal.tick    	  = *tick      ;
 	}
    
 													 
@@ -163,32 +169,45 @@ extern "C" {
 							){
 		EnigmaSim *sim = (EnigmaSim *)app;
 
+        ENIGMA_FLIT cell;
+
 		if(sim->portA.size() > 0){
+            cell = sim->portA.back();
+
 			*valid_a = rand()%2;
 		
-			*id_a   = sim->portA.back().id;
-			*qos_a  = sim->portA.back().qos;
-			*payload_a_0  = sim->portA.back().payload[0];
-			*payload_a_1  = sim->portA.back().payload[1];
-			*payload_a_2  = sim->portA.back().payload[2];
-			*payload_a_3  = sim->portA.back().payload[3];
-
 			if(sim->signal.pre_valid_a && sim->signal.ready_a){
 			
-				ENIGMA_FLIT cell = sim->portA.back();
 				sim->portA.pop_back();
 
 				sim->dutActive.push_back( cell );  // port A
 				
-				fprintf(stderr," +POST PORT[A] : ID[%d] QOS[%d]! Payload: %8x %8x %8x %8x  :: remain %d items\n",
-						*id_a, *qos_a, 
-						*payload_a_0, 
-						*payload_a_1, 
-						*payload_a_2, 
-						*payload_a_3,
-						sim->portA.size()
+				fprintf(stderr," +POST PORT[A] : ID[%2x] QOS[%d]! Payload: %8x %8x %8x %8x  :: remain %d items @%x\n",
+						cell.id, cell.qos, 
+						cell.payload[0], 
+						cell.payload[1], 
+						cell.payload[2], 
+						cell.payload[3],
+						sim->portA.size(),
+                        sim->signal.tick
 						);
+
+                if(sim->portA.size() > 0){
+                    cell = sim->portA.back();
+                }else{
+                    *valid_a = 0;
+                }
 			}
+            
+
+            if(*valid_a){
+                *id_a   = cell.id;
+                *qos_a  = cell.qos;
+                *payload_a_0  = cell.payload[0];
+                *payload_a_1  = cell.payload[1];
+                *payload_a_2  = cell.payload[2];
+                *payload_a_3  = cell.payload[3];
+            }
 
 		}else{
 			*valid_a = 0;
@@ -209,32 +228,49 @@ extern "C" {
 							){
 		EnigmaSim *sim = (EnigmaSim *)app;
 
+        ENIGMA_FLIT cell;
+
 		if(sim->portB.size() > 0){
+            cell = sim->portB.back();
+
 			*valid_b = rand()%2;
 		
-			*id_b   = sim->portB.back().id;
-			*qos_b  = sim->portB.back().qos;
-			*payload_b_0  = sim->portB.back().payload[0];
-			*payload_b_1  = sim->portB.back().payload[1];
-			*payload_b_2  = sim->portB.back().payload[2];
-			*payload_b_3  = sim->portB.back().payload[3];
-
 			if(sim->signal.pre_valid_b && sim->signal.ready_b){
 			
-				ENIGMA_FLIT cell = sim->portB.back();
 				sim->portB.pop_back();
 
 				sim->dutActive.push_back( cell );  // port B
 				
-				fprintf(stderr," +POST PORT[B] : ID[%d] QOS[%d]! Payload: %8x %8x %8x %8x  :: remain %d items\n",
-						*id_b, *qos_b, 
-						*payload_b_0, 
-						*payload_b_1, 
-						*payload_b_2, 
-						*payload_b_3,
-						sim->portB.size()
+				fprintf(stderr," +POST PORT[B] : ID[%2x] QOS[%d]! Payload: %8x %8x %8x %8x  :: remain %d items @%x\n",
+						cell.id, cell.qos, 
+						cell.payload[0], 
+						cell.payload[1], 
+						cell.payload[2], 
+						cell.payload[3],
+						sim->portB.size(),
+                        sim->signal.tick
 						);
+
+                if(sim->portB.size() > 0){
+                    cell = sim->portB.back();
+                }else{
+                    *valid_b = 0;
+                }
+
+                if(sim->portB.size() == 0){
+                    *valid_b = 0;
+                }
 			}
+            
+
+            if(*valid_b){
+                *id_b   = cell.id;
+                *qos_b  = cell.qos;
+                *payload_b_0  = cell.payload[0];
+                *payload_b_1  = cell.payload[1];
+                *payload_b_2  = cell.payload[2];
+                *payload_b_3  = cell.payload[3];
+            }
 
 		}else{
 			*valid_b = 0;
@@ -256,10 +292,11 @@ extern "C" {
 
 		EnigmaSim *sim = (EnigmaSim *)app;
 
-		*error = 0;
+		*error      = 0;
 
 		*conflict_c = 0;
-
+        *ready_c    = rand()%2;
+#if 0
 		// process Realease
 		if(sim->dutPending.size() > 0){
 			vector<int>::iterator iterA = sim->release_delay.begin();
@@ -278,7 +315,7 @@ extern "C" {
 					sim->release_delay.erase(iterA);
 
 
-					fprintf(stderr, " +Release Flit :Port[%s], ID[%d], QOS[%d], Payload[%8x %8x %8x %8x] -- remain pending %d FLIT\n",
+					fprintf(stderr, " +Release Flit :Port[%s], ID[%2x], QOS[%d], Payload[%8x %8x %8x %8x] -- remain pending %d FLIT\n",
 							(*iterB).port? "B":"A", (*iterB).id, (*iterB).qos,
 							(*iterB).payload[3], 
 							(*iterB).payload[2], 
@@ -320,7 +357,7 @@ extern "C" {
 						(*iter).id   == sim->ocell.id
 						){
 
-					fprintf(stderr, " +OUT Flit :Port[%s], ID[%d], QOS[%d], Payload[%8x %8x %8x %8x] -- remain active %d FLIT\n",
+					fprintf(stderr, " +OUT Flit :Port[%s], ID[%2x], QOS[%d], Payload[%8x %8x %8x %8x] -- remain active %d FLIT\n",
 							(*iter).port? "B":"A", (*iter).id, (*iter).qos,
 							(*iter).payload[3], 
 							(*iter).payload[2], 
@@ -358,7 +395,7 @@ extern "C" {
 				if(sim->ocell.id == sim->dutPending.at(cc).id &&
 				   sim->ocell.port == sim->dutPending.at(cc).port
 				   ){
-					fprintf(stderr, " +Error: Conflicted Flit found to be sent :Port[%s], ID[%d], QOS[%d], Payload[%8x %8x %8x %8x]\n",
+					fprintf(stderr, " +Error: Conflicted Flit found to be sent :Port[%s], ID[%2x], QOS[%d], Payload[%8x %8x %8x %8x]\n",
 							sim->ocell.port? "B":"A", sim->ocell.id, sim->ocell.qos,
 							sim->ocell.payload[3], 
 							sim->ocell.payload[2], 
@@ -375,7 +412,8 @@ extern "C" {
 			
 			sim->pre_out_vld_mark = INVALID_OUT;
 		}
-
+#endif
+        fprintf(stderr, " +OC @%d  - ready_c:%d  valid_c:%d\n", sim->signal.tick, sim->signal.pre_ready_c,sim->signal.valid_c );
 
 		// backup current cycle value
 		sim->signal.pre_ready_c    	  = *ready_c;

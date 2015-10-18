@@ -1,10 +1,10 @@
-# SimVision Command Script (Sat Oct 17 12:04:15 PM EDT 2015)
+# SimVision Command Script (Sun Oct 18 12:15:13 AM EDT 2015)
 #
 # Version 13.10.p001
 #
 # You can restore this configuration with:
 #
-#     simvision -input enigma.svcf
+#     simvision -input /home/apachee/github/daisy/sim/enigma.svcf
 #
 
 
@@ -71,8 +71,10 @@ group insert \
      {waves::TH.enigma_buffer.id_c[5:0]}  \
      {waves::TH.enigma_buffer.qos_c[1:0]}  \
      {waves::TH.enigma_buffer.payload_c[127:0]}  \
+     waves::TH.enigma_buffer.pre_out_vld  \
      waves::TH.enigma_buffer.valid_c  \
      waves::TH.enigma_buffer.ready_c  \
+     {waves::TH.enigma_buffer.chain_id[5:0]}  \
      waves::TH.enigma_buffer.release_c  \
      waves::TH.enigma_buffer.conflict_c 
 
@@ -89,8 +91,8 @@ mmap new -reuse -name {Example Map} -radix %x -contents {{%b=11???? -bgcolor ora
 #
 # Waveform windows
 #
-if {[catch {window new WaveWindow -name "Waveform 1" -geometry 1748x895+64+71}] != ""} {
-    window geometry "Waveform 1" 1748x895+64+71
+if {[catch {window new WaveWindow -name "Waveform 1" -geometry 1748x895+59+106}] != ""} {
+    window geometry "Waveform 1" 1748x895+59+106
 }
 window target "Waveform 1" on
 waveform using {Waveform 1}
@@ -101,7 +103,7 @@ waveform set \
     -signalwidth 175 \
     -units ns \
     -valuewidth 75
-waveform baseline set -time 8100ps
+waveform baseline set -time 210,100ps
 
 set id [waveform add -signals  {
 	waves::TH.enigma_buffer.clk
@@ -111,21 +113,138 @@ set id [waveform add -signals  {
 	} ]
 
 set groupId0 [waveform add -groups portC_out]
+set gpGlist0 [waveform hierarchy contents $groupId0]
+set gpID0 [lindex $gpGlist0 0]
+foreach {name attrs}  {
+    {waves::TH.enigma_buffer.id_c[5:0]} {-radix %x}
+    {waves::TH.enigma_buffer.qos_c[1:0]} {-radix %x}
+    {waves::TH.enigma_buffer.payload_c[127:0]} {-radix %x}
+    waves::TH.enigma_buffer.pre_out_vld {}
+    waves::TH.enigma_buffer.valid_c {-color #ff9900 -namecolor #00ff00 -bgcolor #000000}
+    waves::TH.enigma_buffer.ready_c {-color #ff9900 -namecolor #00ff00 -bgcolor #000000}
+    {waves::TH.enigma_buffer.chain_id[5:0]} {-radix %x}
+    waves::TH.enigma_buffer.release_c {}
+    waves::TH.enigma_buffer.conflict_c {}
+} childcmds {
+    {}
+    {}
+    {
+        set id $gpID0
+        waveform hierarchy collapse $id
+    }
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+} {
+    set expected [ join [waveform signals -format fullpath $gpID0] ]
+    if {[string equal $name $expected] || $name == "cdivider"} {
+        if {$attrs != ""} {
+            eval waveform format $gpID0 $attrs
+        }
+        if { $childcmds != ""} {
+            eval $childcmds
+        }
+    }
+    set gpGlist0 [lrange $gpGlist0 1 end]
+    set gpID0 [lindex $gpGlist0 0]
+}
 
 
 set groupId0 [waveform add -groups portA_in]
+set gpGlist0 [waveform hierarchy contents $groupId0]
+set gpID0 [lindex $gpGlist0 0]
+foreach {name attrs}  {
+    {waves::TH.enigma_buffer.id_a[4:0]} {}
+    {waves::TH.enigma_buffer.qos_a[1:0]} {}
+    {waves::TH.enigma_buffer.payload_a[127:0]} {}
+    waves::TH.enigma_buffer.ready_a {-color #0099ff -namecolor #00ff00}
+    waves::TH.enigma_buffer.valid_a {-color #ff9900 -namecolor #00ff00}
+} childcmds {
+    {}
+    {}
+    {}
+    {}
+    {}
+} {
+    set expected [ join [waveform signals -format fullpath $gpID0] ]
+    if {[string equal $name $expected] || $name == "cdivider"} {
+        if {$attrs != ""} {
+            eval waveform format $gpID0 $attrs
+        }
+        if { $childcmds != ""} {
+            eval $childcmds
+        }
+    }
+    set gpGlist0 [lrange $gpGlist0 1 end]
+    set gpID0 [lindex $gpGlist0 0]
+}
 
 
 set groupId0 [waveform add -groups portB_in]
+set gpGlist0 [waveform hierarchy contents $groupId0]
+set gpID0 [lindex $gpGlist0 0]
+foreach {name attrs}  {
+    {waves::TH.enigma_buffer.id_b[4:0]} {}
+    {waves::TH.enigma_buffer.qos_b[1:0]} {}
+    {waves::TH.enigma_buffer.payload_b[127:0]} {}
+    waves::TH.enigma_buffer.ready_b {-color #0099ff -namecolor #99ff00}
+    waves::TH.enigma_buffer.valid_b {-color #ff9900 -namecolor #99ff00}
+} childcmds {
+    {}
+    {}
+    {}
+    {}
+    {}
+} {
+    set expected [ join [waveform signals -format fullpath $gpID0] ]
+    if {[string equal $name $expected] || $name == "cdivider"} {
+        if {$attrs != ""} {
+            eval waveform format $gpID0 $attrs
+        }
+        if { $childcmds != ""} {
+            eval $childcmds
+        }
+    }
+    set gpGlist0 [lrange $gpGlist0 1 end]
+    set gpID0 [lindex $gpGlist0 0]
+}
 
+set id [waveform add -signals  {
+	{waves::TH.enigma_sim.tick[31:0]}
+	} ]
 
-waveform xview limits 0 58.8ns
+waveform xview limits 194.3ns 216.1ns
 
 #
 # Waveform Window Links
 #
 
 #
-# Layout selection
+# Source Browser windows
 #
+if {[catch {window new SrcBrowser -name "Source Browser 1" -geometry 700x525+82+82}] != ""} {
+    window geometry "Source Browser 1" 700x525+82+82
+}
+window target "Source Browser 1" on
+srcbrowser using {Source Browser 1}
+srcbrowser set \
+    -primarycursor TimeA \
+    -units ns \
+    -radix default \
+    -showstrength 0 \
+    -showcallstack 0 \
+    -displayvalues 0
+
+srcbrowser show -scope TH.enigma_buffer -file /home/apachee/github/daisy/hdl/rtl/enigma_buffer.v -line 2
+
+srcbrowser sidebar visibility partial
+
+#
+# Console windows
+#
+console set -windowname Console
+window geometry Console 600x250+52+52
 
