@@ -40,7 +40,10 @@ module ENIGMA_BUFFER(/*autoarg*/
     // debug using
     reg [31:0]         tick;
     bit [5:0]          chain_id;
+    bit [6:0]          chain_size;
     bit                pre_out_vld;
+    bit [1:0]          max_qos;
+    bit                dim_qos_en;
     
     chandle            app;
 
@@ -60,7 +63,11 @@ module ENIGMA_BUFFER(/*autoarg*/
                                                     output        valid_c,
                                                     // debug using
                                                     output [5:0]  chain_id,
-                                                    output        pre_out_vld
+                                                    output [6:0]  chain_size,
+                                                    output        pre_out_vld,
+                                                    output [1:0]  max_qos,
+                                                    output        dim_qos_en
+
                                                     );
     
 
@@ -117,7 +124,10 @@ module ENIGMA_BUFFER(/*autoarg*/
                                   valid_c,
                                   // debug using
                                   chain_id,
-                                  pre_out_vld
+                                  chain_size,
+                                  pre_out_vld,
+                                  max_qos,
+                                  dim_qos_en
                                   );
 
     always @(posedge clk)

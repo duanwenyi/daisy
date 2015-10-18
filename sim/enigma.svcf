@@ -1,4 +1,4 @@
-# SimVision Command Script (Sun Oct 18 12:15:13 AM EDT 2015)
+# SimVision Command Script (Sun Oct 18 01:23:13 AM EDT 2015)
 #
 # Version 13.10.p001
 #
@@ -71,10 +71,13 @@ group insert \
      {waves::TH.enigma_buffer.id_c[5:0]}  \
      {waves::TH.enigma_buffer.qos_c[1:0]}  \
      {waves::TH.enigma_buffer.payload_c[127:0]}  \
+     {waves::TH.enigma_buffer.chain_size[6:0]}  \
+     {waves::TH.enigma_buffer.chain_id[5:0]}  \
      waves::TH.enigma_buffer.pre_out_vld  \
+     {waves::TH.enigma_buffer.max_qos[1:0]}  \
+     waves::TH.enigma_buffer.dim_qos_en  \
      waves::TH.enigma_buffer.valid_c  \
      waves::TH.enigma_buffer.ready_c  \
-     {waves::TH.enigma_buffer.chain_id[5:0]}  \
      waves::TH.enigma_buffer.release_c  \
      waves::TH.enigma_buffer.conflict_c 
 
@@ -103,7 +106,7 @@ waveform set \
     -signalwidth 175 \
     -units ns \
     -valuewidth 75
-waveform baseline set -time 210,100ps
+waveform baseline set -time 218,100ps
 
 set id [waveform add -signals  {
 	waves::TH.enigma_buffer.clk
@@ -119,10 +122,13 @@ foreach {name attrs}  {
     {waves::TH.enigma_buffer.id_c[5:0]} {-radix %x}
     {waves::TH.enigma_buffer.qos_c[1:0]} {-radix %x}
     {waves::TH.enigma_buffer.payload_c[127:0]} {-radix %x}
-    waves::TH.enigma_buffer.pre_out_vld {}
+    {waves::TH.enigma_buffer.chain_size[6:0]} {-color #00ff99}
+    {waves::TH.enigma_buffer.chain_id[5:0]} {-radix %x -color #00ffff}
+    waves::TH.enigma_buffer.pre_out_vld {-color #00ffff}
+    {waves::TH.enigma_buffer.max_qos[1:0]} {-color #00ffff}
+    waves::TH.enigma_buffer.dim_qos_en {-color #00ffff}
     waves::TH.enigma_buffer.valid_c {-color #ff9900 -namecolor #00ff00 -bgcolor #000000}
     waves::TH.enigma_buffer.ready_c {-color #ff9900 -namecolor #00ff00 -bgcolor #000000}
-    {waves::TH.enigma_buffer.chain_id[5:0]} {-radix %x}
     waves::TH.enigma_buffer.release_c {}
     waves::TH.enigma_buffer.conflict_c {}
 } childcmds {
@@ -132,6 +138,9 @@ foreach {name attrs}  {
         set id $gpID0
         waveform hierarchy collapse $id
     }
+    {}
+    {}
+    {}
     {}
     {}
     {}
@@ -216,7 +225,7 @@ set id [waveform add -signals  {
 	{waves::TH.enigma_sim.tick[31:0]}
 	} ]
 
-waveform xview limits 194.3ns 216.1ns
+waveform xview limits 190.62ns 225.56ns
 
 #
 # Waveform Window Links

@@ -233,6 +233,7 @@ class EnigmaBuf
 	int   last_chain_id;     // last chain selected cell id
 	int   pre_out_vld_mark;  // pre-cycle output valid
 
+    int   pre_last_qos;
     int   last_qos;
     int   dim_qos_en;        // 
     int   seq_qos_count;     // squence output the same QOS counter
@@ -259,7 +260,10 @@ extern "C" {
                         
                             // debug using
                             svBitVecVal * chain_id,
-                            svBit       * pre_out_vld
+                            svBitVecVal * chain_size,
+                            svBit       * pre_out_vld,
+                            svBitVecVal * max_qos,
+                            svBit       * dim_qos_en
 							);
    
 													 

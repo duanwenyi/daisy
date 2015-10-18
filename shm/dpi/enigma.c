@@ -413,8 +413,6 @@ extern "C" {
 			sim->pre_out_vld_mark = INVALID_OUT;
 		}
 #endif
-        fprintf(stderr, " +OC @%d  - ready_c:%d  valid_c:%d\n", sim->signal.tick, sim->signal.pre_ready_c,sim->signal.valid_c );
-
 		// backup current cycle value
 		sim->signal.pre_ready_c    	  = *ready_c;
 		sim->signal.pre_conflict_c	  = *conflict_c;
