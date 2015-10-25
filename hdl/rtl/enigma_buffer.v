@@ -44,6 +44,7 @@ module ENIGMA_BUFFER(/*autoarg*/
     bit                pre_out_vld;
     bit [1:0]          max_qos;
     bit                dim_qos_en;
+    bit                portSel;
     
     chandle            app;
 
@@ -66,7 +67,8 @@ module ENIGMA_BUFFER(/*autoarg*/
                                                     output [6:0]  chain_size,
                                                     output        pre_out_vld,
                                                     output [1:0]  max_qos,
-                                                    output        dim_qos_en
+                                                    output        dim_qos_en,
+                                                    output        portSel
 
                                                     );
     
@@ -127,7 +129,8 @@ module ENIGMA_BUFFER(/*autoarg*/
                                   chain_size,
                                   pre_out_vld,
                                   max_qos,
-                                  dim_qos_en
+                                  dim_qos_en,
+                                  portSel
                                   );
 
     always @(posedge clk)

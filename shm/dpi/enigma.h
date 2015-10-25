@@ -181,12 +181,17 @@ typedef struct ENIGMA_FLIT_U_S {
     int lock;
 	int id;
 	int qos;
-	int addr;    // 0 ~ 31
+	int next_ptr;    // 0 ~ 31
 }ENIGMA_FLIT_U, *ENIGMA_FLIT_U_p;
 
 #define ENIGMA_MEM_MAX_SIZE 24
+#define ENIGMA_MEM_FULL_MARK 0xFFFFFF
 
 typedef struct ENIGMA_BUF_MEM_S {
+    int full;          // no empty address now
+    int empty;         // no FLIT
+    int nptr;          // next empty pointer for new coming FLIT
+    int nnptr;         // next next empty pointer for new coming FLIT
     int vld_bits;      // echo bit for one address , map to 0 ~ 31
     int count;
     int lock_count;
@@ -202,6 +207,10 @@ typedef struct ENIGMA_QOS_S {
 #define ENIGMA_ID_MSK      0x1F
 #define ENIGMA_ID_EXP      0x20
 
+#define PORT_SEL_A 0
+#define PORT_SEL_B 1
+
+
 class EnigmaBuf
 {
  public:
@@ -210,25 +219,33 @@ class EnigmaBuf
 	
 	vector<ENIGMA_FLIT_U> chain;
 
-    bool isMemFull();
-    bool isMemNearFull();
-    bool isMemEmpty();
-    int  getFreeAddr();
+    int lptr;    // lowest Qos pointer
+    int hptr;    // highest Qos pointer
+    int cur_ptr; // chain header pointer
+
+    int portSel; // 0:Select A   1:Select B
+
     void lockAllId(int id);
     void unlockAllId(int id);
     void consumOneCell(int id);
     
     int  getHighestQos();
-    int  getValidCellId();
+
+    void updateMemStatus();
 
     void showFlitInfo(int chain_id);
+    void showFlitAll();
 
     ENIGMA_BUF_MEM_S    mem;
     
     bool isLowQosNotEmpty(int qos);
 
+    int  getlowestQos();
+    bool isHighQosNotEmpty(int qos);
+
     int   qos_count[4];      //  count valid FLIT same qos numbers
 
+	int   pre_chain_id;      // current chain selected cell id
 	int   cur_chain_id;      // current chain selected cell id
 	int   last_chain_id;     // last chain selected cell id
 	int   pre_out_vld_mark;  // pre-cycle output valid
@@ -263,7 +280,8 @@ extern "C" {
                             svBitVecVal * chain_size,
                             svBit       * pre_out_vld,
                             svBitVecVal * max_qos,
-                            svBit       * dim_qos_en
+                            svBit       * dim_qos_en,
+                            svBit       * portSel
 							);
    
 													 

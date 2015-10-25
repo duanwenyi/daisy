@@ -44,8 +44,14 @@ module TH;
    always @(posedge clk or negedge rst_n)
      if(~rst_n)
        cnt    <= 32'b0;
+     else if(valid_c)
+       cnt    <= 32'b0;
      else
        cnt    <= cnt + 1;
+
+   always @(posedge clk)
+     if( cnt > 32'd1000)
+       $finish();
 
    ENIGMA_BUFFER enigma_buffer(/*autoinst*/
 							   // Outputs

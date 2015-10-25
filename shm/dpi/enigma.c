@@ -89,7 +89,8 @@ void EnigmaSim::loadStimulate(){
 					joinOneFlit( &releaseC, !!(id & 0x20) , id & 0x1F, qos);
 				}
 
-				std::cout << port << " " << id << " " << qos << std::endl; 
+                fprintf(stderr," %s\t %x\t %x \n", port.c_str(), id, qos);
+				//std::cout << port << " " << id << " " << qos << std::endl; 
 			} 
 		fin.clear(); 
 	}
