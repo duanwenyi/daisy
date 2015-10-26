@@ -221,7 +221,9 @@ class EnigmaBuf
 
     int lptr;    // lowest Qos pointer
     int hptr;    // highest Qos pointer
-    int cur_ptr; // chain header pointer
+    int head_ptr;  // chain header pointer
+    int tail_ptr; // chain tail   pointer
+    int update_tail_nptr_en;
 
     int portSel; // 0:Select A   1:Select B
 
@@ -239,6 +241,7 @@ class EnigmaBuf
     ENIGMA_BUF_MEM_S    mem;
     
     bool isLowQosNotEmpty(int qos);
+    bool isIDUnique(int chain_id);
 
     int  getlowestQos();
     bool isHighQosNotEmpty(int qos);
@@ -281,7 +284,8 @@ extern "C" {
                             svBit       * pre_out_vld,
                             svBitVecVal * max_qos,
                             svBit       * dim_qos_en,
-                            svBit       * portSel
+                            svBit       * portSel,
+                            svBitVecVal * nptr
 							);
    
 													 

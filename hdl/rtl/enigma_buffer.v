@@ -40,11 +40,16 @@ module ENIGMA_BUFFER(/*autoarg*/
     // debug using
     reg [31:0]         tick;
     bit [5:0]          chain_id;
+    bit [5:0]          last_chain_id;
     bit [6:0]          chain_size;
     bit                pre_out_vld;
     bit [1:0]          max_qos;
     bit                dim_qos_en;
     bit                portSel;
+    bit [5:0]          nptr;
+    bit [5:0]          nnptr;
+    bit [5:0]          head_ptr;
+    bit [5:0]          tail_ptr;
     
     chandle            app;
 
@@ -63,12 +68,13 @@ module ENIGMA_BUFFER(/*autoarg*/
                                                     output [1:0]  qos_c,
                                                     output        valid_c,
                                                     // debug using
-                                                    output [5:0]  chain_id,
+                                                    output [11:0]  chain_id,
                                                     output [6:0]  chain_size,
                                                     output        pre_out_vld,
                                                     output [1:0]  max_qos,
                                                     output        dim_qos_en,
-                                                    output        portSel
+                                                    output        portSel,
+                                                    output [23:0] nptr
 
                                                     );
     
@@ -125,12 +131,13 @@ module ENIGMA_BUFFER(/*autoarg*/
                                   qos_c,
                                   valid_c,
                                   // debug using
-                                  chain_id,
+                                  {last_chain_id, chain_id},
                                   chain_size,
                                   pre_out_vld,
                                   max_qos,
                                   dim_qos_en,
-                                  portSel
+                                  portSel,
+                                  {tail_ptr, head_ptr, nnptr, nptr}
                                   );
 
     always @(posedge clk)

@@ -29,44 +29,19 @@ EnigmaBuf::EnigmaBuf(){
 
     lptr  = 0;
     hptr  = 0;
-    cur_ptr = 0;
+    head_ptr = 0;
+    tail_ptr = 0;
+    update_tail_nptr_en = 0;
 
 	fprintf(stderr," Enigma Buffer initialed !\n");
 	
 }
 
 
-void EnigmaBuf::consumOneCell(int id){
-    if(mem.vld_bits  & (1 << id)){
-
-
-        mem.vld_bits  &= ~(1 << id);  // unmask the bit
-        mem.count--;
-
-#ifdef ENIGMA_DEBUG
-        fprintf(stderr, " +C FLIT: " );
-        showFlitInfo( id );
-#endif
-        if(qos_count[chain.at(id).qos] > 0)  // forbiden error
-            qos_count[chain.at(id).qos]--;
-        else
-            fprintf(stderr," +Error: @consumOneCell : Qos %d is 0 when reduce counter! @%x\n", chain.at(id).qos, signal.tick);
-
-        if(mem.count != 0)
-            chain.at(pre_chain_id).next_ptr = chain.at(id).next_ptr;
-
-        //chain.at(id).lock = 0;
-
-    }else{
-        fprintf(stderr," +Error: @consumOneCell : ID %d not valid when VLD_BITS %x ! @%x\n", id, mem.vld_bits, signal.tick);
-    }
-}
-
-
 
 void EnigmaBuf::showFlitInfo(int chain_id){
     if(chain_id < ENIGMA_MEM_MAX_SIZE){
-        fprintf(stderr," +ChainID[%2d]->[%2d]  : [%s]ID[%2x] QOS[%d] Payload:[%8x %8x %8x %8x] +Mem[%6x][%2d->%2d] +lastQos[%d->%d:%2d] +->%d items (lock %d) @%x\n", 
+        fprintf(stderr," +ChainID[%2d]->[%2d]  : [%s]ID[%2x] QOS[%d] Payload:[%8x %8x %8x %8x] +Mem[%6x][%2d->%2d] +lastQos[%d->%d:%2d][%2d:%2d:%2d:%2d]+->%d items (lock %d) @%x\n", 
                 chain_id,
                 chain.at(chain_id).next_ptr,
                 (chain.at(chain_id).id & ENIGMA_ID_EXP ) ? "B" : "A",
@@ -82,6 +57,7 @@ void EnigmaBuf::showFlitInfo(int chain_id){
                 pre_last_qos,
                 last_qos,
                 seq_qos_count,
+                qos_count[0],qos_count[1],qos_count[2],qos_count[3],
                 mem.count,
                 mem.lock_count,
                 signal.tick
@@ -91,7 +67,7 @@ void EnigmaBuf::showFlitInfo(int chain_id){
 }
 
 void EnigmaBuf::showFlitAll(){
-    int chain_id = cur_ptr;
+    int chain_id = head_ptr;
     int cc = 0;
     while( cc < mem.count){
         showFlitInfo(chain_id);
@@ -209,6 +185,50 @@ void EnigmaBuf::updateMemStatus(){
 
 }
 
+bool EnigmaBuf::isIDUnique(int chain_id){
+    bool single = true;
+    int id = chain.at(chain_id).id;
+    for(int cc=0; cc < ENIGMA_MEM_MAX_SIZE; cc++){
+        if( (mem.vld_bits & (1<<cc)) && (chain_id != cc) && (chain.at(cc).id == id) ){
+            single = false;
+            break;
+        }
+    }
+    
+    return single;
+}
+
+void EnigmaBuf::consumOneCell(int id){
+    if(mem.vld_bits  & (1 << id)){
+
+
+        mem.vld_bits  &= ~(1 << id);  // unmask the bit
+        mem.count--;
+
+#ifdef ENIGMA_DEBUG
+        fprintf(stderr, " +C FLIT: " );
+        showFlitInfo( id );
+#endif
+        if(qos_count[chain.at(id).qos] > 0)  // forbiden error
+            qos_count[chain.at(id).qos]--;
+        else
+            fprintf(stderr," +Error: @consumOneCell : Qos %d is 0 when reduce counter! @%x\n", chain.at(id).qos, signal.tick);
+
+        if(mem.count != 0)
+            chain.at(pre_chain_id).next_ptr = chain.at(id).next_ptr;
+
+        if(id == tail_ptr)
+            tail_ptr = pre_chain_id;
+
+        if(id == head_ptr)
+            head_ptr = chain.at(id).next_ptr;
+
+        //chain.at(id).lock = 0;
+
+    }else{
+        fprintf(stderr," +Error: @consumOneCell : ID %d not valid when VLD_BITS %x ! @%x\n", id, mem.vld_bits, signal.tick);
+    }
+}
 
 void *enigma_buf_init(){
 
@@ -235,9 +255,13 @@ void enigma_buf_port_o( void        * app,
                         svBit       * pre_out_vld,
                         svBitVecVal * max_qos,
                         svBit       * dim_qos_en,
-                        svBit       * portSel
+                        svBit       * portSel,
+                        svBitVecVal * nptr
                         ){
     EnigmaBuf *sim = (EnigmaBuf *)app;
+
+    if(sim->signal.pre_valid_c && sim->signal.ready_c)
+        sim->last_chain_id      = sim->cur_chain_id;
 
     // port C
     if( sim->pre_out_vld_mark ){
@@ -266,6 +290,7 @@ void enigma_buf_port_o( void        * app,
             sim->pre_last_qos = sim->last_qos;
 
             sim->consumOneCell( sim->last_chain_id );
+            sim->showFlitAll();
         }
     }
 
@@ -284,12 +309,14 @@ void enigma_buf_port_o( void        * app,
        (sim->mem.lock_count < sim->mem.count)
        ){
             
-        sim->cur_chain_id = sim->cur_ptr;
+        sim->cur_chain_id = sim->head_ptr;
         sim->pre_chain_id = sim->cur_chain_id;
         for(int cc=0;cc < sim->mem.count; cc++){
-            if( sim->chain.at(sim->cur_chain_id).qos == sim->getHighestQos() &&
-                (!sim->chain.at(sim->cur_chain_id).lock) &&
-                (sim->chain.at(sim->cur_chain_id).id != sim->chain.at(sim->cur_ptr).id )
+            if( (!sim->chain.at(sim->cur_chain_id).lock) && 
+                ( (sim->chain.at(sim->cur_chain_id).qos == sim->getHighestQos() &&
+                   (sim->chain.at(sim->cur_chain_id).id != sim->chain.at(sim->head_ptr).id )) ||
+                  (!sim->isIDUnique(sim->cur_chain_id))
+                  )
                 ){
                 seek_ok = 1;
                 break;
@@ -312,7 +339,6 @@ void enigma_buf_port_o( void        * app,
 #ifdef ENIGMA_DEBUG
         fprintf(stderr, " +S FLIT: " );
         sim->showFlitInfo( sim->cur_chain_id );
-        sim->showFlitAll();
 #endif
         }else{
             *valid_c = 0;
@@ -325,6 +351,10 @@ void enigma_buf_port_o( void        * app,
         
     // *************** INNER FUNCTIONS *******************
 
+    if(sim->update_tail_nptr_en){
+        sim->chain.at(sim->tail_ptr).next_ptr = sim->mem.nptr;
+        sim->update_tail_nptr_en = 0;
+    }
 
     // port A or B
     if( (sim->signal.pre_ready_a && sim->signal.valid_a) ||
@@ -362,6 +392,10 @@ void enigma_buf_port_o( void        * app,
 
         sim->qos_count[sim->chain.at(sim->mem.nptr).qos]++;
 			
+        sim->tail_ptr  = sim->mem.nptr;
+        if(sim->pre_out_vld_mark)
+            sim->update_tail_nptr_en = 1;
+
         // update status
         sim->mem.vld_bits              |= (1 << sim->mem.nptr);
         sim->mem.count++;
@@ -394,8 +428,6 @@ void enigma_buf_port_o( void        * app,
 
 		
     sim->pre_out_vld_mark       = sim->signal.pre_valid_c && sim->signal.ready_c;
-    if(sim->pre_out_vld_mark)
-        sim->last_chain_id      = sim->cur_chain_id;
 
     //fprintf(stderr, " +> %8x : [%d] : %d  @%x\n", sim->mem.vld_bits, sim->mem.full, sim->mem.nptr, sim->signal.tick );
 
@@ -410,12 +442,13 @@ void enigma_buf_port_o( void        * app,
     
 
     // debug using
-    *chain_id    = sim->cur_chain_id;
+    *chain_id    = sim->cur_chain_id | (sim->last_chain_id << 6);
     *chain_size  = sim->mem.count;
     *pre_out_vld = sim->pre_out_vld_mark;
     *max_qos     = sim->getHighestQos();
     *dim_qos_en  = sim->dim_qos_en;
     *portSel     = sim->portSel;
+    *nptr        = sim->mem.nptr | (sim->mem.nnptr << 6) | (sim->head_ptr << 12) | (sim->tail_ptr << 18);
 
     // backup current cycle value
     sim->signal.pre_ready_a		= *ready_a    ; 	  

@@ -5,6 +5,8 @@
 #include <fstream>
 #include "enigma.h"
 
+//#define ENIGMA_SIM_DEBUG
+
 EnigmaSim::EnigmaSim(){
 	portA.clear();
 	portB.clear();
@@ -182,7 +184,7 @@ extern "C" {
 				sim->portA.pop_back();
 
 				sim->dutActive.push_back( cell );  // port A
-				
+#ifdef ENIGMA_SIM_DEBUG				
 				fprintf(stderr," +POST PORT[A] : ID[%2x] QOS[%d]! Payload: %8x %8x %8x %8x  :: remain %d items @%x\n",
 						cell.id, cell.qos, 
 						cell.payload[0], 
@@ -192,7 +194,7 @@ extern "C" {
 						sim->portA.size(),
                         sim->signal.tick
 						);
-
+#endif
                 if(sim->portA.size() > 0){
                     cell = sim->portA.back();
                 }else{
@@ -241,7 +243,7 @@ extern "C" {
 				sim->portB.pop_back();
 
 				sim->dutActive.push_back( cell );  // port B
-				
+#ifdef ENIGMA_SIM_DEBUG				
 				fprintf(stderr," +POST PORT[B] : ID[%2x] QOS[%d]! Payload: %8x %8x %8x %8x  :: remain %d items @%x\n",
 						cell.id, cell.qos, 
 						cell.payload[0], 
@@ -251,7 +253,7 @@ extern "C" {
 						sim->portB.size(),
                         sim->signal.tick
 						);
-
+#endif
                 if(sim->portB.size() > 0){
                     cell = sim->portB.back();
                 }else{

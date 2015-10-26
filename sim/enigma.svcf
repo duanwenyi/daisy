@@ -1,4 +1,4 @@
-# SimVision Command Script (Sun Oct 18 01:23:13 AM EDT 2015)
+# SimVision Command Script (Mon Oct 26 01:42:13 PM EDT 2015)
 #
 # Version 13.10.p001
 #
@@ -41,8 +41,10 @@ group insert \
      {waves::TH.enigma_buffer.id_a[4:0]}  \
      {waves::TH.enigma_buffer.qos_a[1:0]}  \
      {waves::TH.enigma_buffer.payload_a[127:0]}  \
+     waves::TH.enigma_buffer.portSel  \
      waves::TH.enigma_buffer.ready_a  \
-     waves::TH.enigma_buffer.valid_a 
+     waves::TH.enigma_buffer.valid_a  \
+     {((waves::TH.enigma_buffer.ready_a === 'b1) && (waves::TH.enigma_buffer.valid_a === 'b1))} 
 
 group using {Group 2}
 group set -overlay 0
@@ -60,7 +62,8 @@ group insert \
      {waves::TH.enigma_buffer.qos_b[1:0]}  \
      {waves::TH.enigma_buffer.payload_b[127:0]}  \
      waves::TH.enigma_buffer.ready_b  \
-     waves::TH.enigma_buffer.valid_b 
+     waves::TH.enigma_buffer.valid_b  \
+     {((waves::TH.enigma_buffer.ready_b === 'b1) && (waves::TH.enigma_buffer.valid_b === 'b1))} 
 
 group using portC_out
 group set -overlay 0
@@ -71,15 +74,17 @@ group insert \
      {waves::TH.enigma_buffer.id_c[5:0]}  \
      {waves::TH.enigma_buffer.qos_c[1:0]}  \
      {waves::TH.enigma_buffer.payload_c[127:0]}  \
-     {waves::TH.enigma_buffer.chain_size[6:0]}  \
-     {waves::TH.enigma_buffer.chain_id[5:0]}  \
-     waves::TH.enigma_buffer.pre_out_vld  \
      {waves::TH.enigma_buffer.max_qos[1:0]}  \
      waves::TH.enigma_buffer.dim_qos_en  \
      waves::TH.enigma_buffer.valid_c  \
      waves::TH.enigma_buffer.ready_c  \
+     {((waves::TH.enigma_buffer.ready_c === 'b1) && (waves::TH.enigma_buffer.valid_c === 'b1))}  \
+     waves::TH.enigma_buffer.pre_out_vld  \
      waves::TH.enigma_buffer.release_c  \
-     waves::TH.enigma_buffer.conflict_c 
+     waves::TH.enigma_buffer.conflict_c  \
+     {waves::TH.enigma_buffer.tail_ptr[5:0]}  \
+     {waves::TH.enigma_buffer.chain_size[6:0]}  \
+     {waves::TH.enigma_buffer.chain_id[5:0]} 
 
 #
 # Mnemonic Maps
@@ -94,8 +99,8 @@ mmap new -reuse -name {Example Map} -radix %x -contents {{%b=11???? -bgcolor ora
 #
 # Waveform windows
 #
-if {[catch {window new WaveWindow -name "Waveform 1" -geometry 1748x895+59+106}] != ""} {
-    window geometry "Waveform 1" 1748x895+59+106
+if {[catch {window new WaveWindow -name "Waveform 1" -geometry 1391x1001+494+0}] != ""} {
+    window geometry "Waveform 1" 1391x1001+494+0
 }
 window target "Waveform 1" on
 waveform using {Waveform 1}
@@ -106,7 +111,7 @@ waveform set \
     -signalwidth 175 \
     -units ns \
     -valuewidth 75
-waveform baseline set -time 218,100ps
+waveform baseline set -time 230,000ps
 
 set id [waveform add -signals  {
 	waves::TH.enigma_buffer.clk
@@ -122,22 +127,25 @@ foreach {name attrs}  {
     {waves::TH.enigma_buffer.id_c[5:0]} {-radix %x}
     {waves::TH.enigma_buffer.qos_c[1:0]} {-radix %x}
     {waves::TH.enigma_buffer.payload_c[127:0]} {-radix %x}
-    {waves::TH.enigma_buffer.chain_size[6:0]} {-color #00ff99}
-    {waves::TH.enigma_buffer.chain_id[5:0]} {-radix %x -color #00ffff}
-    waves::TH.enigma_buffer.pre_out_vld {-color #00ffff}
     {waves::TH.enigma_buffer.max_qos[1:0]} {-color #00ffff}
     waves::TH.enigma_buffer.dim_qos_en {-color #00ffff}
     waves::TH.enigma_buffer.valid_c {-color #ff9900 -namecolor #00ff00 -bgcolor #000000}
     waves::TH.enigma_buffer.ready_c {-color #ff9900 -namecolor #00ff00 -bgcolor #000000}
+    {((waves::TH.enigma_buffer.ready_c === 'b1) && (waves::TH.enigma_buffer.valid_c === 'b1))} {-color #ff0099}
+    waves::TH.enigma_buffer.pre_out_vld {-color #00ffff}
     waves::TH.enigma_buffer.release_c {}
     waves::TH.enigma_buffer.conflict_c {}
+    {waves::TH.enigma_buffer.head_ptr[5:0]} {-color #00ffff}
+    {waves::TH.enigma_buffer.tail_ptr[5:0]} {-color #00ffff -namecolor #ff00ff}
+    {waves::TH.enigma_buffer.chain_size[6:0]} {-color #00ff99}
+    {waves::TH.enigma_buffer.chain_id[5:0]} {-radix %x -color #00ffff}
 } childcmds {
     {}
     {}
-    {
-        set id $gpID0
-        waveform hierarchy collapse $id
-    }
+    {}
+    {}
+    {}
+    {}
     {}
     {}
     {}
@@ -161,6 +169,17 @@ foreach {name attrs}  {
     set gpID0 [lindex $gpGlist0 0]
 }
 
+set id [waveform add -signals  {
+	{waves::TH.enigma_buffer.last_chain_id[5:0]}
+	} ]
+set id [waveform add -signals  {
+	{waves::TH.enigma_buffer.nptr[5:0]}
+	} ]
+waveform format $id -color #0099ff -namecolor #9900ff
+set id [waveform add -signals  {
+	{waves::TH.enigma_buffer.nnptr[5:0]}
+	} ]
+waveform format $id -color #0099ff -namecolor #9900ff
 
 set groupId0 [waveform add -groups portA_in]
 set gpGlist0 [waveform hierarchy contents $groupId0]
@@ -169,9 +188,13 @@ foreach {name attrs}  {
     {waves::TH.enigma_buffer.id_a[4:0]} {}
     {waves::TH.enigma_buffer.qos_a[1:0]} {}
     {waves::TH.enigma_buffer.payload_a[127:0]} {}
+    waves::TH.enigma_buffer.portSel {}
     waves::TH.enigma_buffer.ready_a {-color #0099ff -namecolor #00ff00}
     waves::TH.enigma_buffer.valid_a {-color #ff9900 -namecolor #00ff00}
+    {((waves::TH.enigma_buffer.ready_a === 'b1) && (waves::TH.enigma_buffer.valid_a === 'b1))} {-color #ff00ff}
 } childcmds {
+    {}
+    {}
     {}
     {}
     {}
@@ -201,7 +224,9 @@ foreach {name attrs}  {
     {waves::TH.enigma_buffer.payload_b[127:0]} {}
     waves::TH.enigma_buffer.ready_b {-color #0099ff -namecolor #99ff00}
     waves::TH.enigma_buffer.valid_b {-color #ff9900 -namecolor #99ff00}
+    {((waves::TH.enigma_buffer.ready_b === 'b1) && (waves::TH.enigma_buffer.valid_b === 'b1))} {-color #ff00ff}
 } childcmds {
+    {}
     {}
     {}
     {}
@@ -225,35 +250,9 @@ set id [waveform add -signals  {
 	{waves::TH.enigma_sim.tick[31:0]}
 	} ]
 
-waveform xview limits 190.62ns 225.56ns
+waveform xview limits 216.46ns 243.54ns
 
 #
 # Waveform Window Links
 #
-
-#
-# Source Browser windows
-#
-if {[catch {window new SrcBrowser -name "Source Browser 1" -geometry 700x525+82+82}] != ""} {
-    window geometry "Source Browser 1" 700x525+82+82
-}
-window target "Source Browser 1" on
-srcbrowser using {Source Browser 1}
-srcbrowser set \
-    -primarycursor TimeA \
-    -units ns \
-    -radix default \
-    -showstrength 0 \
-    -showcallstack 0 \
-    -displayvalues 0
-
-srcbrowser show -scope TH.enigma_buffer -file /home/apachee/github/daisy/hdl/rtl/enigma_buffer.v -line 2
-
-srcbrowser sidebar visibility partial
-
-#
-# Console windows
-#
-console set -windowname Console
-window geometry Console 600x250+52+52
 
