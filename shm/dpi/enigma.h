@@ -248,10 +248,12 @@ class EnigmaBuf
 
     int   qos_count[4];      //  count valid FLIT same qos numbers
 
-	int   pre_chain_id;      // current chain selected cell id
-	int   cur_chain_id;      // current chain selected cell id
-	int   last_chain_id;     // last chain selected cell id
+	int   pre_chain_id;      // current chain selected cell id (pointer)
+	int   cur_chain_id;      // current chain selected cell id (pointer)
+	int   last_chain_id;     // last chain selected cell id (pointer)
+
 	int   pre_out_vld_mark;  // pre-cycle output valid
+    int   cur_out_vld_mark;  // current-cycle output valid
 
     int   pre_last_qos;
     int   last_qos;

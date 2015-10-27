@@ -39,6 +39,7 @@ module ENIGMA_BUFFER(/*autoarg*/
 
     // debug using
     reg [31:0]         tick;
+    bit [5:0]          pre_chain_id;
     bit [5:0]          chain_id;
     bit [5:0]          last_chain_id;
     bit [6:0]          chain_size;
@@ -68,7 +69,7 @@ module ENIGMA_BUFFER(/*autoarg*/
                                                     output [1:0]  qos_c,
                                                     output        valid_c,
                                                     // debug using
-                                                    output [11:0]  chain_id,
+                                                    output [17:0]  chain_id,
                                                     output [6:0]  chain_size,
                                                     output        pre_out_vld,
                                                     output [1:0]  max_qos,
@@ -131,7 +132,7 @@ module ENIGMA_BUFFER(/*autoarg*/
                                   qos_c,
                                   valid_c,
                                   // debug using
-                                  {last_chain_id, chain_id},
+                                  {pre_chain_id, last_chain_id, chain_id},
                                   chain_size,
                                   pre_out_vld,
                                   max_qos,
