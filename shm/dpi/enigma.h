@@ -64,6 +64,15 @@ class EnigmaSim
 	void genOneFlitA(int id, int qos);
 	void genOneFlitB(int id, int qos);
 
+    bool isIDActive(int id);
+    bool isIDPending(int id);
+    bool isIDExist(int id);
+    bool isIDUnique(int id);
+
+    int  getFirstPtr(int id);
+
+    bool checkOCell();
+
 	
 	vector<ENIGMA_FLIT> portA;
 	vector<ENIGMA_FLIT> portB;
