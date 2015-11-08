@@ -5,7 +5,7 @@
 #include <fstream>
 #include "enigma.h"
 
-//#define ENIGMA_SIM_DEBUG
+#define ENIGMA_SIM_DEBUG
 
 EnigmaSim::EnigmaSim(){
 	portA.clear();
