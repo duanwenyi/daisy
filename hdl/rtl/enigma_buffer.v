@@ -216,9 +216,6 @@ module ENIGMA_BUFFER(/*autoarg*/
     reg                             port_sel; // 0: select A   1: select B
     reg                             local_buf_not_full;
     
-    reg [127:0]                     cur_o_payload;
-    reg [5:0]                       cur_o_id;
-    reg [1:0]                       cur_o_qos;
 
     //reg [127:0]                     i_load_payload;
     reg                             i_load_en;
@@ -231,6 +228,9 @@ module ENIGMA_BUFFER(/*autoarg*/
     reg [5:0]                       id_c;
     reg [1:0]                       qos_c;
     reg [5:0]                       post_id_c;
+
+    wire [127:0]                    cur_sel_payload;
+    reg [127:0]                     payload_c;
 
     reg [5:0]                       post_o_id;
     reg                             vld_c_o_en; // delay one cycle of (valid_c & ready_c)
@@ -427,8 +427,12 @@ module ENIGMA_BUFFER(/*autoarg*/
     always @(posedge clk or negedge rst_n)
       if(~rst_n)
         valid_c   <= 1'b0;
-      else
-        valid_c   <= |cur_sel_en;
+      else if(|cur_sel_en)
+        valid_c   <= 1'b1;
+      else if(i_seek_en)
+        valid_c   <= 1'b1;
+      else if(ready_c)
+        valid_c   <= 1'b0;
 
     always @(posedge clk or negedge rst_n)
       if(~rst_n)
@@ -441,6 +445,8 @@ module ENIGMA_BUFFER(/*autoarg*/
         {id_c, qos_c}      <= 1'b0;
       else if(|cur_sel_en)
         {id_c, qos_c}      <= {vote_id_s[ENIGMA_CELL_MAX-1], vote_qos_s[ENIGMA_CELL_MAX-1]};
+      else if(i_seek_en)
+        {id_c, qos_c}      <= {i_seek_id, i_seek_qos};
 
     always @(posedge clk or negedge rst_n)
       if(~rst_n)
@@ -448,9 +454,17 @@ module ENIGMA_BUFFER(/*autoarg*/
       else
         i_load_en   <= i_seek_en;
 
+    always @(posedge clk or negedge rst_n)
+      if(~rst_n)
+        payload_c   <= 1'b0;
+      else if(|cur_sel_en)
+        payload_c   <= cur_sel_payload;
+      else
+        payload_c   <= i_seek_payload;
+    
 
     ENIGMA_MEM #(ENIGMA_CELL_MAX) U_ENIGMA_MEM(// Outputs
-                                               .o_payload          (payload_c),
+                                               .o_payload          (cur_sel_payload),
                                                // Inputs
                                                .clk                (clk),
                                                .rst_n              (rst_n),
