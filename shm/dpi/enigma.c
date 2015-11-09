@@ -39,27 +39,92 @@ void EnigmaSim::setRandomSeed(int seed){
 	srand(seed);
 }
 
+void EnigmaSim::showOCell(const char *info){
+    fprintf(stderr," +OCELL   [%s] : ID-Qos-Payload [%2x - %d]-[%8x %8x %8x %8x]  :: %s @%x\n",
+            (ocell.id&0x20) ? "B":"A",
+            ocell.id, ocell.qos, 
+            ocell.payload[3], 
+            ocell.payload[2], 
+            ocell.payload[1], 
+            ocell.payload[0],
+            info,
+            signal.tick
+            );
+}
+
+void EnigmaSim::showFLIT( ENIGMA_FLIT cell ){
+    fprintf(stderr," +GOLD  ->[%s] : ID-Qos-Payload [%2x - %d]-[%8x %8x %8x %8x] <- \n",
+            (cell.id&0x20) ? "B":"A",
+            cell.id, cell.qos, 
+            cell.payload[3], 
+            cell.payload[2], 
+            cell.payload[1], 
+            cell.payload[0]
+            );
+}
+
 bool EnigmaSim::checkOCell(){
     bool check = true;
     
     if(isIDExist(ocell.id)){
         if(isIDPending(ocell.id)){
             check = false;
+            showOCell("+ERROR: the ID is locked when sent out");
         }else{
-#if 0
+#if 1
             int p = getFirstPtr(ocell.id);
-            if(dutActive.at(p) != ocell)
+            if( (dutActive.at(p).id != ocell.id) ||
+                (dutActive.at(p).qos != ocell.qos) ||
+                (dutActive.at(p).payload[0] != ocell.payload[0]) ||
+                (dutActive.at(p).payload[1] != ocell.payload[1]) ||
+                (dutActive.at(p).payload[2] != ocell.payload[2]) ||
+                (dutActive.at(p).payload[3] != ocell.payload[3]) 
+                ){
                 check = false;
-            if(isIDUnique(ocell.id)){
-            }else{
+            }
+            if(check == false){
+                if(isIDUnique(ocell.id)){
+                    showOCell("+ERROR: FLIT INFO not correct when ID is unique");
+                }else{
+                    showOCell("+ERROR: FLIT INFO not correct when ID is not unique");
+                }
+                showFLIT( dutActive.at(p) );
             }
 #endif
         }
-        
-        
     }else{
-
+        showOCell("+ERROR: the FLIT is not exist");
+        check = false;
     }
+
+    return check;
+}
+
+void EnigmaSim::showStatus(){
+    fprintf(stderr,"..............................................................\n");
+    vector<ENIGMA_FLIT_S>::iterator iter = dutActive.begin();
+
+    if(dutActive.size() > 0){
+        fprintf(stderr," |Active::  ");
+        while( iter != dutActive.end()){
+            fprintf(stderr," (%2x - %d)", (*iter).id, (*iter).qos );
+            iter++;
+        }
+        fprintf(stderr,"\n");
+    }
+
+    iter = dutPending.begin();
+
+    if(dutPending.size() > 0){
+        fprintf(stderr," |Pending:: ");
+        while( iter != dutPending.end()){
+            fprintf(stderr," (%2x - %d)", (*iter).id, (*iter).qos );
+            iter++;
+        }
+        fprintf(stderr,"\n");
+    }
+    fprintf(stderr,"..............................................................\n");
+
 }
 
 bool EnigmaSim::isIDActive(int id){
@@ -194,13 +259,17 @@ void EnigmaSim::loadStimulate(){
 void EnigmaSim::joinOneFlit(vector<ENIGMA_FLIT> *group, int port, int id, int qos){
 	
 	ENIGMA_FLIT cell;
-	cell.port = port;  // 0:A   1:B
-	cell.id   = id  & 0x1F;
+	//cell.port = port;  // 0:A   1:B
+    if(port) // port B
+        cell.id   = (id & 0x1F) | 0x20;
+    else
+        cell.id   = id  & 0x1F;
+        
 	cell.qos  = qos & 0x3;
-	cell.payload[0] = id | (id<<8) |(port<<14);
-	cell.payload[1] = qos;
-	cell.payload[2] = port;
-	cell.payload[3] = rand();   // for output check
+	cell.payload[0] = rand();   // for output check
+	cell.payload[1] = port;
+	cell.payload[2] = qos;
+	cell.payload[3] = id; 
 
 	group->insert( group->begin(), cell );
 }
@@ -402,15 +471,15 @@ extern "C" {
 
 				if((*iterA) == 0){
 					*release_c  = 1;
-					*releaseid_c = (*iterB).id | ((*iterB).port << 6);
+					*releaseid_c = (*iterB).id;
 
 					// remove one conflicted pending item
 					sim->dutPending.erase(iterB);
 					sim->release_delay.erase(iterA);
 
 
-					fprintf(stderr, " +Release Flit :Port[%s], ID[%2x], QOS[%d], Payload[%8x %8x %8x %8x] -- remain pending %d FLIT\n",
-							(*iterB).port? "B":"A", (*iterB).id, (*iterB).qos,
+					fprintf(stderr, " +Release Flit :Port[%s], ID-Qos-Payload [%2x - %d]-[%8x %8x %8x %8x] -- remain pending %d FLIT\n",
+							((*iterB).id&0x20) ? "B":"A", (*iterB).id, (*iterB).qos,
 							(*iterB).payload[3], 
 							(*iterB).payload[2], 
 							(*iterB).payload[1], 
@@ -448,16 +517,15 @@ extern "C" {
 				// remove output Flit from Active group
 				vector<ENIGMA_FLIT>::iterator iter	= sim->dutActive.begin();
 				for(; iter != sim->dutActive.end();iter++){
-					if( (*iter).port == sim->ocell.port &&
-						(*iter).id   == sim->ocell.id
-						){
-
+					if( (*iter).id   == sim->ocell.id){
+                        sim->showOCell("");
+#if 0
                         if( ((*iter).payload[3] == sim->ocell.payload[3]) && 
                             ((*iter).payload[2] == sim->ocell.payload[2]) && 
                             ((*iter).payload[1] == sim->ocell.payload[1]) && 
                             ((*iter).payload[0] == sim->ocell.payload[0]) 
                             ){
-                            fprintf(stderr, " +OUT Port[%s] : ID-Qos-Payload [%2x - %d]-[%8x %8x %8x %8x]  ** remain %d active FLIT +OK    @%x\n",
+                            fprintf(stderr, " +OUT Port[%s] : ID-Qos-Payload <%2x - %d>-[%8x %8x %8x %8x]  ** remain %d active FLIT +OK    @%x\n",
                                     (*iter).port? "B":"A", (*iter).id, (*iter).qos,
                                     (*iter).payload[3], 
                                     (*iter).payload[2], 
@@ -467,7 +535,7 @@ extern "C" {
                                     sim->signal.tick
                                     );
                         }else{
-                            fprintf(stderr, " +OUT Port[%s] : ID-Qos-Payload [%2x - %d]-[%8x %8x %8x %8x]  ** remain %d active FLIT +ERROR  @%x\n",
+                            fprintf(stderr, " +OUT Port[%s] : ID-Qos-Payload <%2x - %d>-[%8x %8x %8x %8x]  ** remain %d active FLIT +ERROR  @%x\n",
                                     (*iter).port? "B":"A", (*iter).id, (*iter).qos,
                                     (*iter).payload[3], 
                                     (*iter).payload[2], 
@@ -476,13 +544,17 @@ extern "C" {
                                     sim->dutActive.size() - 1,
                                     sim->signal.tick
                                     );
-                            fprintf(stderr, "                                      ->[%8x %8x %8x %8x]<-\n",
+                            fprintf(stderr, "                                      ->[%8x %8x %8x %8x]<- +ERROR_DATA\n",
                                     sim->ocell.payload[3], 
                                     sim->ocell.payload[2], 
                                     sim->ocell.payload[1], 
                                     sim->ocell.payload[0]
                                     );
+                            *error      = 1;
+
                         }
+#endif
+
 						// same ID must be the first !
 						sim->dutActive.erase(iter);
 						break;
@@ -492,9 +564,8 @@ extern "C" {
 		}
 
 		if(sim->signal.pre_ready_c && sim->signal.valid_c){
-			sim->ocell.port = !!(sim->signal.id_c & 0x20);
-			sim->ocell.id   = sim->signal.id_c & 0x1F;
-			sim->ocell.qos  = sim->signal.id_c;
+			sim->ocell.id   = sim->signal.id_c;
+			sim->ocell.qos  = sim->signal.qos_c;
 
 			sim->ocell.payload[0] = sim->signal.payload_c_0;
 			sim->ocell.payload[1] = sim->signal.payload_c_1;
@@ -502,29 +573,10 @@ extern "C" {
 			sim->ocell.payload[3] = sim->signal.payload_c_3;
 
 			sim->pre_out_vld_mark = VALID_OUT;
-#if 0
-			// simple check payload
-			
-#endif
-			// check whether ID is conflicted
-			for(int cc=0; cc< sim->dutPending.size(); cc++){
-				if(sim->ocell.id == sim->dutPending.at(cc).id &&
-				   sim->ocell.port == sim->dutPending.at(cc).port
-				   ){
-					fprintf(stderr, " +Error: Conflicted Flit found to be sent :Port[%s], ID-Qos-Payload : [%2x - %d]-[%8x %8x %8x %8x] @%x\n",
-							sim->ocell.port? "B":"A", sim->ocell.id, sim->ocell.qos,
-							sim->ocell.payload[3], 
-							sim->ocell.payload[2], 
-							sim->ocell.payload[1], 
-							sim->ocell.payload[0],
-                            sim->signal.tick
-							);
-					*error = 1;
-					break;
-				}
 
-			}
-
+            // check out 
+            if(sim->checkOCell() == false)
+                *error = 1;
 		}else{
 			
 			sim->pre_out_vld_mark = INVALID_OUT;
@@ -535,6 +587,9 @@ extern "C" {
 		sim->signal.pre_conflict_c	  = *conflict_c;
 		sim->signal.pre_release_c 	  = *release_c;
 		sim->signal.pre_releaseid_c	  = *releaseid_c;
+
+        if(*error)
+            sim->showStatus();
 	}
 
 }

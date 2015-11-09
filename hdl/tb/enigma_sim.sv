@@ -158,4 +158,8 @@ module ENIGMA_SIM(/*autoarg*/
                                 error
                                 );
 
+    always @(posedge clk)
+      if(rst_n & error)
+        #100 $finish();
+
 endmodule

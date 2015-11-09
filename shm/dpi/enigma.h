@@ -4,7 +4,7 @@
 using namespace std;
 
 typedef struct ENIGMA_FLIT_S {
-	int port;  // 0: from port A   1: from port B 
+	//int port;  // 0: from port A   1: from port B 
 	int id;
 	int qos;
 	int payload[4];
@@ -72,7 +72,9 @@ class EnigmaSim
     int  getFirstPtr(int id);
 
     bool checkOCell();
-
+	void showStatus();
+	void showOCell(const char *info);
+    void showFLIT( ENIGMA_FLIT cell );
 	
 	vector<ENIGMA_FLIT> portA;
 	vector<ENIGMA_FLIT> portB;
@@ -90,6 +92,7 @@ class EnigmaSim
 	vector<int>         release_delay;     // bind process to dutPending !
 
 	ENIGMA_PORT_SIGNAL  signal;
+    bool                error;
 
 };
 

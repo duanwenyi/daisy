@@ -1,10 +1,10 @@
-# SimVision Command Script (Mon Oct 26 01:42:13 PM EDT 2015)
+# SimVision Command Script (Mon Nov 09 11:31:26 AM EST 2015)
 #
 # Version 13.10.p001
 #
 # You can restore this configuration with:
 #
-#     simvision -input /home/apachee/github/daisy/sim/enigma.svcf
+#     simvision -input enigma.svcf
 #
 
 
@@ -31,6 +31,7 @@ catch {group new -name portA_in -overlay 0}
 catch {group new -name {Group 2} -overlay 0}
 catch {group new -name portB_in -overlay 0}
 catch {group new -name portC_out -overlay 0}
+catch {group new -name MEM -overlay 0}
 
 group using portA_in
 group set -overlay 0
@@ -41,7 +42,6 @@ group insert \
      {waves::TH.enigma_buffer.id_a[4:0]}  \
      {waves::TH.enigma_buffer.qos_a[1:0]}  \
      {waves::TH.enigma_buffer.payload_a[127:0]}  \
-     waves::TH.enigma_buffer.portSel  \
      waves::TH.enigma_buffer.ready_a  \
      waves::TH.enigma_buffer.valid_a  \
      {((waves::TH.enigma_buffer.ready_a === 'b1) && (waves::TH.enigma_buffer.valid_a === 'b1))} 
@@ -74,17 +74,22 @@ group insert \
      {waves::TH.enigma_buffer.id_c[5:0]}  \
      {waves::TH.enigma_buffer.qos_c[1:0]}  \
      {waves::TH.enigma_buffer.payload_c[127:0]}  \
-     {waves::TH.enigma_buffer.max_qos[1:0]}  \
-     waves::TH.enigma_buffer.dim_qos_en  \
      waves::TH.enigma_buffer.valid_c  \
      waves::TH.enigma_buffer.ready_c  \
      {((waves::TH.enigma_buffer.ready_c === 'b1) && (waves::TH.enigma_buffer.valid_c === 'b1))}  \
-     waves::TH.enigma_buffer.pre_out_vld  \
+     waves::TH.enigma_buffer.delect_en  \
      waves::TH.enigma_buffer.release_c  \
-     waves::TH.enigma_buffer.conflict_c  \
-     {waves::TH.enigma_buffer.tail_ptr[5:0]}  \
-     {waves::TH.enigma_buffer.chain_size[6:0]}  \
-     {waves::TH.enigma_buffer.chain_id[5:0]} 
+     waves::TH.enigma_buffer.conflict_c 
+
+group using MEM
+group set -overlay 0
+group set -comment {}
+group clear 0 end
+
+group insert \
+     {waves::TH.enigma_buffer.U_ENIGMA_MEM.o_payload[127:0]}  \
+     {waves::TH.enigma_buffer.U_ENIGMA_MEM.fetch_sel[23:0]}  \
+     {waves::TH.enigma_buffer.U_ENIGMA_MEM.load_sel[23:0]} 
 
 #
 # Mnemonic Maps
@@ -111,7 +116,7 @@ waveform set \
     -signalwidth 175 \
     -units ns \
     -valuewidth 75
-waveform baseline set -time 230,000ps
+waveform baseline set -time 248,000ps
 
 set id [waveform add -signals  {
 	waves::TH.enigma_buffer.clk
@@ -127,25 +132,13 @@ foreach {name attrs}  {
     {waves::TH.enigma_buffer.id_c[5:0]} {-radix %x}
     {waves::TH.enigma_buffer.qos_c[1:0]} {-radix %x}
     {waves::TH.enigma_buffer.payload_c[127:0]} {-radix %x}
-    {waves::TH.enigma_buffer.max_qos[1:0]} {-color #00ffff}
-    waves::TH.enigma_buffer.dim_qos_en {-color #00ffff}
     waves::TH.enigma_buffer.valid_c {-color #ff9900 -namecolor #00ff00 -bgcolor #000000}
     waves::TH.enigma_buffer.ready_c {-color #ff9900 -namecolor #00ff00 -bgcolor #000000}
     {((waves::TH.enigma_buffer.ready_c === 'b1) && (waves::TH.enigma_buffer.valid_c === 'b1))} {-color #ff0099}
-    waves::TH.enigma_buffer.pre_out_vld {-color #00ffff}
+    waves::TH.enigma_buffer.delect_en {}
     waves::TH.enigma_buffer.release_c {}
     waves::TH.enigma_buffer.conflict_c {}
-    {waves::TH.enigma_buffer.head_ptr[5:0]} {-color #00ffff}
-    {waves::TH.enigma_buffer.tail_ptr[5:0]} {-color #00ffff -namecolor #ff00ff}
-    {waves::TH.enigma_buffer.chain_size[6:0]} {-color #00ff99}
-    {waves::TH.enigma_buffer.chain_id[5:0]} {-radix %x -color #00ffff}
 } childcmds {
-    {}
-    {}
-    {}
-    {}
-    {}
-    {}
     {}
     {}
     {}
@@ -169,17 +162,6 @@ foreach {name attrs}  {
     set gpID0 [lindex $gpGlist0 0]
 }
 
-set id [waveform add -signals  {
-	{waves::TH.enigma_buffer.last_chain_id[5:0]}
-	} ]
-set id [waveform add -signals  {
-	{waves::TH.enigma_buffer.nptr[5:0]}
-	} ]
-waveform format $id -color #0099ff -namecolor #9900ff
-set id [waveform add -signals  {
-	{waves::TH.enigma_buffer.nnptr[5:0]}
-	} ]
-waveform format $id -color #0099ff -namecolor #9900ff
 
 set groupId0 [waveform add -groups portA_in]
 set gpGlist0 [waveform hierarchy contents $groupId0]
@@ -188,12 +170,10 @@ foreach {name attrs}  {
     {waves::TH.enigma_buffer.id_a[4:0]} {}
     {waves::TH.enigma_buffer.qos_a[1:0]} {}
     {waves::TH.enigma_buffer.payload_a[127:0]} {}
-    waves::TH.enigma_buffer.portSel {}
     waves::TH.enigma_buffer.ready_a {-color #0099ff -namecolor #00ff00}
     waves::TH.enigma_buffer.valid_a {-color #ff9900 -namecolor #00ff00}
     {((waves::TH.enigma_buffer.ready_a === 'b1) && (waves::TH.enigma_buffer.valid_a === 'b1))} {-color #ff00ff}
 } childcmds {
-    {}
     {}
     {}
     {}
@@ -247,10 +227,64 @@ foreach {name attrs}  {
 }
 
 set id [waveform add -signals  {
+	{waves::TH.enigma_buffer.valid[23:0]}
+	} ]
+waveform format $id -color #ff00ff -namecolor #ffff00
+set id [waveform add -signals  {
+	{waves::TH.enigma_buffer.o_seek_det[23:0]}
+	{waves::TH.enigma_buffer.cur_hi_qos_bin_ss[3:0]}
+	{waves::TH.enigma_buffer.cur_hi_qos_bin[3:0]}
+	} ]
+set id [waveform add -signals  {
+	{waves::TH.enigma_buffer.i_load_sel[23:0]}
+	} ]
+waveform format $id -color #9900ff -namecolor #00ffff
+set id [waveform add -signals  {
+	waves::TH.enigma_buffer.i_seek_en
+	} ]
+waveform format $id -color #ffff00 -namecolor #00ff99
+set id [waveform add -signals  {
+	waves::TH.enigma_buffer.i_load_en
+	} ]
+waveform format $id -color #0099ff
+set id [waveform add -signals  {
+	{waves::TH.enigma_buffer.i_load_id[5:0]}
+	} ]
+waveform format $id -color #0099ff
+set id [waveform add -signals  {
+	{waves::TH.enigma_buffer.i_load_qos[1:0]}
+	} ]
+waveform format $id -color #0099ff
+set id [waveform add -signals  {
+	{waves::TH.enigma_buffer.i_load_payload[127:0]}
+	} ]
+waveform format $id -color #0099ff
+set id [waveform add -signals  {
+	{waves::TH.enigma_buffer.vote_en[23:0]}
+	} ]
+waveform format $id -color #ff0099
+set id [waveform add -signals  {
+	{waves::TH.enigma_buffer.i_load_seq_num[3:0]}
+	} ]
+set id [waveform add -signals  {
+	{waves::TH.enigma_buffer.cur_sel_en[23:0]}
+	} ]
+waveform format $id -color #ff00ff -bgcolor #000000
+set id [waveform add -signals  {
+	{waves::TH.enigma_buffer.vote_qos_ss[1:0]}
+	{waves::TH.enigma_buffer.vote_id_ss[5:0]}
 	{waves::TH.enigma_sim.tick[31:0]}
 	} ]
 
-waveform xview limits 216.46ns 243.54ns
+set groupId0 [waveform add -groups MEM]
+
+set id [waveform add -signals  {
+	{waves::TH.enigma_buffer.payload_c[127:0]}
+	{waves::TH.enigma_buffer.cur_sel_en[23:0]}
+	{waves::TH.enigma_buffer.i_seek_payload[127:0]}
+	} ]
+
+waveform xview limits 225.05ns 242.12ns
 
 #
 # Waveform Window Links
