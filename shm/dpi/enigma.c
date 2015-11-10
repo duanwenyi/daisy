@@ -28,8 +28,8 @@ EnigmaSim::EnigmaSim(){
 
 	loadStimulate();
 
-	genOneFlitA( 5, LEVEL2);
-	genOneFlitB( 5, LEVEL3);
+	//genOneFlitA( 5, LEVEL2);
+	//genOneFlitB( 5, LEVEL3);
 
 	fprintf(stderr," Enigma Simulator initialed !\n");
 	
@@ -40,7 +40,7 @@ void EnigmaSim::setRandomSeed(int seed){
 }
 
 void EnigmaSim::showOCell(const char *info){
-    fprintf(stderr," +OCELL   [%s] : ID-Qos-Payload [%2x - %d]-[%8x %8x %8x %8x]  :: %s @%x\n",
+    fprintf(stderr," +OCELL[%s]-ID-Qos-Payload <%2x - %d>-<%8x %8x %8x %8x>  :: %s @%x\n",
             (ocell.id&0x20) ? "B":"A",
             ocell.id, ocell.qos, 
             ocell.payload[3], 
@@ -53,7 +53,7 @@ void EnigmaSim::showOCell(const char *info){
 }
 
 void EnigmaSim::showFLIT( ENIGMA_FLIT cell ){
-    fprintf(stderr," +GOLD  ->[%s] : ID-Qos-Payload [%2x - %d]-[%8x %8x %8x %8x] <- \n",
+    fprintf(stderr," +GOLD [%s]+ID-Qos-Payload [%2x - %d]-[%8x %8x %8x %8x] <- \n",
             (cell.id&0x20) ? "B":"A",
             cell.id, cell.qos, 
             cell.payload[3], 
@@ -345,7 +345,7 @@ extern "C" {
 
 				sim->dutActive.push_back( cell );  // port A
 #ifdef ENIGMA_SIM_DEBUG				
-				fprintf(stderr," +IN  PORT[A] : ID-Qos-Payload [%2x - %d]-[%8x %8x %8x %8x]  :: remain %d items @%x\n",
+				fprintf(stderr," +IN   [A]:ID-Qos-Payload [%2x - %d]-[%8x %8x %8x %8x]  :: remain %d items @%x\n",
 						cell.id, cell.qos, 
 						cell.payload[3], 
 						cell.payload[2], 
@@ -404,7 +404,7 @@ extern "C" {
 
 				sim->dutActive.push_back( cell );  // port B
 #ifdef ENIGMA_SIM_DEBUG				
-				fprintf(stderr," +IN  PORT[B] : ID-Qos-Payload [%2x - %d]-[%8x %8x %8x %8x]  :: remain %d items @%x\n",
+				fprintf(stderr," +IN   [B]:ID-Qos-Payload [%2x - %d]-[%8x %8x %8x %8x]  :: remain %d items @%x\n",
 						cell.id, cell.qos, 
 						cell.payload[3], 
 						cell.payload[2], 
