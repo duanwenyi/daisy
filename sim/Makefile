@@ -36,9 +36,6 @@ DUT_RUN_OPTS  = ${TOP_MODULE} ${NC_MODE} -nontcglitch -errormax 1 -input wave.tc
 HDL_COMPILER = ncvlog
 
 
-# VCS
-#USER_RUN_OPTS += -ucli -i ./wave_fsdb.do
-
 eva:
 	make -f ../app/Makefile
 
@@ -49,7 +46,7 @@ svtb:
 	$(CXX) -Wall -g -fPIC $(DEFINES) $(EVA_SRC) $(INCPATH) -shared -o libdpi.so
 	ncvlog -f project.f $(DUT_CMPL_OPTS)
 	ncelab $(DUT_ELAB_OPTS)
-run:
+run: svtb
 	ncsim $(DUT_RUN_OPTS)
 
 
