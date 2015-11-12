@@ -40,7 +40,7 @@ module ENIGMA_SIM(/*autoarg*/
     input bit [1:0]    qos_c;
 
     bit                error;
-    reg [31:0]         tick;
+    reg [15:0]         tick;
     
     
     chandle            app;
