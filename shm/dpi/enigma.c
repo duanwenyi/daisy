@@ -343,7 +343,7 @@ extern "C" {
 		if(sim->portA.size() > 0){
             cell = sim->portA.back();
 
-			*valid_a = rand()%2;
+			*valid_a = (rand()%4 != 0);
 		
 			if(sim->signal.pre_valid_a && sim->signal.ready_a){
 			
@@ -402,7 +402,7 @@ extern "C" {
 		if(sim->portB.size() > 0){
             cell = sim->portB.back();
 
-			*valid_b = rand()%2;
+			*valid_b = (rand()%5 != 0);
 		
 			if(sim->signal.pre_valid_b && sim->signal.ready_b){
 			

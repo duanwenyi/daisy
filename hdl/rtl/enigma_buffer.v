@@ -1,4 +1,3 @@
-//`define ENGIMA_SEQ_ID_MAX_SUPPORT
 module ENIGMA_MEM (/*AUTOARG*/
     // Outputs
     o_payload,
@@ -161,7 +160,6 @@ module ENIGMA_CELL (/*AUTOARG*/
     wire           init_load_qos_bin = i_load_en_hit & ( (i_load_seq_num == 4'b0) | (delect_en_hit_the_id & i_load_seq_num == 4'b1));   // the only ID
     wire           invoke_qos_bin    = ( (delect_en_hit_the_id & (id_seq_num == 4'd1)) | 
                                          (release_en_hit & ~id_seq_not_single) );
-    //wire           dim_local_qos_bin = (cur_c_o_en & cur_sel_en)| (delect_en_hit_the_id & ~id_seq_not_single) | lock_en_hit;
     wire           dim_local_qos_bin = cur_c_o_en | lock_en_hit;
     always @(posedge clk or negedge rst_n)
       if(~rst_n)
@@ -228,10 +226,12 @@ module ENIGMA_BUFFER(/*autoarg*/
     output reg [5:0]                id_c;
     output reg [1:0]                qos_c;
 
-    reg                             port_sel; // 0: select A   1: select B
+    reg                             port_sel;        // 0: select A   1: select B
     reg [5:0]                       local_flit_nums;
 
-    //reg [127:0]                     i_load_payload;
+    reg [5:0]                       hungry_cnt;      // count hungry FLIT
+    reg                             hungry_det;      // Hungry schedule detector
+
     reg                             i_load_en;
     reg [ENIGMA_CELL_MAX-1:0]       i_load_sel;
     reg [5:0]                       i_load_id;
@@ -239,7 +239,6 @@ module ENIGMA_BUFFER(/*autoarg*/
     
     wire [3:0]                      cur_hi_qos_bin;
     reg [5:0]                       post_id_c;
-    reg                             bypass_c;
     reg                             load_c_vote_en;
 
     wire [127:0]                    cur_sel_payload;
@@ -247,7 +246,6 @@ module ENIGMA_BUFFER(/*autoarg*/
     reg                             vld_c_o_en_ff; // delay one cycle of (valid_c & ready_c)
     wire                            vld_c_o_en = valid_c & ready_c;
     wire                            delect_en  = vld_c_o_en_ff & ~conflict_c;
-    //wire                            delect_en  = vld_c_o_en & ~conflict_c;
 
     wire                            i_seek_en  = (valid_a & ready_a) | (valid_b & ready_b);
     wire [ENIGMA_CELL_MAX-1:0]      i_seek_sel;
@@ -291,8 +289,6 @@ module ENIGMA_BUFFER(/*autoarg*/
     wire [3:0]                      i_load_seq_num;
     wire [3:0]                      i_load_seq_num_s[ENIGMA_CELL_MAX-1:0];
     wire [3:0]                      cur_hi_qos_bin_s[ENIGMA_CELL_MAX-1:0];
-
-    wire                            i_load_en_mg = i_load_en & ~( bypass_c & ready_c);
 
     wire [5:0]                      vote_id_s[ENIGMA_CELL_MAX-1:0];
     wire [1:0]                      vote_qos_s[ENIGMA_CELL_MAX-1:0];
@@ -450,13 +446,6 @@ module ENIGMA_BUFFER(/*autoarg*/
 
     always @(posedge clk or negedge rst_n)
       if(~rst_n)
-        bypass_c   <= 1'b0;
-      else
-        bypass_c   <= i_seek_en & local_flit_empty;
-    
-
-    always @(posedge clk or negedge rst_n)
-      if(~rst_n)
         {i_load_id, i_load_qos}      <= 8'b0;
       else if(i_seek_en)
         {i_load_id, i_load_qos}      <= {i_seek_id, i_seek_qos};
@@ -472,7 +461,21 @@ module ENIGMA_BUFFER(/*autoarg*/
         load_c_vote_en   <= 1'b1;
       else if(local_flit_single & vld_c_o_en)
         load_c_vote_en   <= 1'b0;
-        
+
+    // hungry detect
+    always @(posedge clk or negedge rst_n)
+      if(~rst_n)
+        hungry_cnt   <= 6'b0;
+      else if(~hungry_det & load_c_vote_en & vld_o_sel_en )
+        hungry_cnt   <= {6{(cur_hi_qos_bin != cur_hi_qos_bin_ss)}} & (hungry_cnt + 1);
+
+    always @(posedge clk or negedge rst_n)
+      if(~rst_n)
+        hungry_det   <= 1'b0;
+      else if( (&hungry_cnt))
+        hungry_det   <= 1'b1;
+      else if(local_flit_empty)
+        hungry_det   <= 1'b0;
 
     always @(posedge clk or negedge rst_n)
       if(~rst_n)
