@@ -94,6 +94,10 @@ class EnigmaSim
 	ENIGMA_PORT_SIGNAL  signal;
     bool                error;
 
+    int                 flit_nums;
+
+    int                 idle_det;  // idle time detector
+
 };
 
 extern "C" {

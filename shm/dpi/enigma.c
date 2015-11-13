@@ -24,6 +24,9 @@ EnigmaSim::EnigmaSim(){
     signal.pre_valid_a = 0;
     signal.pre_ready_c = 0;
 
+    flit_nums = 0;
+    idle_det  = 0;
+
 	srand(0);
 
 	loadStimulate();
@@ -107,7 +110,7 @@ void EnigmaSim::showStatus(){
     if(dutActive.size() > 0){
         fprintf(stderr," |Active::  ");
         while( iter != dutActive.end()){
-            fprintf(stderr," (%2x - %d)", (*iter).id, (*iter).qos );
+            fprintf(stderr," (%2x - %d)[%2x]", (*iter).id, (*iter).qos ,(*iter).payload[1]&0xFF);
             iter++;
         }
         fprintf(stderr,"\n");
@@ -118,7 +121,7 @@ void EnigmaSim::showStatus(){
     if(dutPending.size() > 0){
         fprintf(stderr," |Pending:: ");
         while( iter != dutPending.end()){
-            fprintf(stderr," (%2x - %d)", (*iter).id, (*iter).qos );
+            fprintf(stderr," (%2x - %d)[%2x]", (*iter).id, (*iter).qos ,(*iter).payload[1]&0xFF);
             iter++;
         }
         fprintf(stderr,"\n");
@@ -265,11 +268,14 @@ void EnigmaSim::joinOneFlit(vector<ENIGMA_FLIT> *group, int port, int id, int qo
     else
         cell.id   = id  & 0x1F;
         
+
 	cell.qos  = qos & 0x3;
 	cell.payload[0] = rand();   // for output check
-	cell.payload[1] = port;
+	cell.payload[1] = (port<<31) | (flit_nums & 0xFF);
 	cell.payload[2] = qos;
 	cell.payload[3] = id; 
+
+    flit_nums++;
 
 	group->insert( group->begin(), cell );
 }
@@ -458,7 +464,7 @@ extern "C" {
 		*error      = 0;
 
 		*conflict_c = 0;
-        *ready_c    = rand()%2;
+        *ready_c    = (rand()%4) != 0;
 #if 1
 		// process Realease
 		if(sim->dutPending.size() > 0){
@@ -577,9 +583,13 @@ extern "C" {
             // check out 
             if(sim->checkOCell() == false)
                 *error = 1;
+
+            sim->idle_det = 0;
 		}else{
 			
 			sim->pre_out_vld_mark = INVALID_OUT;
+
+            sim->idle_det++;
 		}
 
 		// backup current cycle value
@@ -590,6 +600,11 @@ extern "C" {
 
         if(*error)
             sim->showStatus();
+
+        if(sim->idle_det > 100){
+            sim->showStatus();
+            sim->idle_det = 0;
+        }
 	}
 
 }
