@@ -43,7 +43,7 @@ void EnigmaSim::setRandomSeed(int seed){
 }
 
 void EnigmaSim::showOCell(const char *info){
-    fprintf(stderr," +OCELL[%s]-ID-Qos-Payload <%2x - %d>-<%8x %8x %8x %8x>  :: %s @%x\n",
+    fprintf(stderr," +OCELL[%s]--------------- <%2x - %d>-<%8x %8x %8x %8x>  :: %s @%x\n",
             (ocell.id&0x20) ? "B":"A",
             ocell.id, ocell.qos, 
             ocell.payload[3], 
@@ -463,7 +463,6 @@ extern "C" {
 
 		*error      = 0;
 
-		*conflict_c = 0;
         *ready_c    = (rand()%6) != 0;
         //*ready_c    = 1;
 #if 1
@@ -485,14 +484,15 @@ extern "C" {
 					sim->release_delay.erase(iterA);
 
 
-					fprintf(stderr, " +Release Flit :Port[%s], ID-Qos-Payload [%2x - %d]-[%8x %8x %8x %8x] -- remain pending %d FLIT\n",
-							((*iterB).id&0x20) ? "B":"A", (*iterB).id, (*iterB).qos,
+                    fprintf(stderr, " +Release~~~~~~~~~~~~~~~> {%2x - %d}-[%8x %8x %8x %8x]  @%x\n",
+							(*iterB).id, (*iterB).qos,
 							(*iterB).payload[3], 
 							(*iterB).payload[2], 
 							(*iterB).payload[1], 
 							(*iterB).payload[0],
-							sim->dutPending.size()
-							);
+                            sim->signal.tick
+                            );
+                    sim->showStatus();
 					break;
 				}
 
@@ -513,12 +513,7 @@ extern "C" {
 		// process Conflict
 		if( (sim->pre_out_vld_mark == VALID_OUT) ){
 
-			if(*conflict_c){
-
-				sim->dutPending.push_back( sim->ocell );
-				sim->release_delay.push_back( rand()%64 + 1 );
-
-			}else{
+			if(!sim->signal.pre_conflict_c){
 				sim->portC.push_back( sim->ocell );
 
 				// remove output Flit from Active group
@@ -526,42 +521,6 @@ extern "C" {
 				for(; iter != sim->dutActive.end();iter++){
 					if( (*iter).id   == sim->ocell.id){
                         sim->showOCell("");
-#if 0
-                        if( ((*iter).payload[3] == sim->ocell.payload[3]) && 
-                            ((*iter).payload[2] == sim->ocell.payload[2]) && 
-                            ((*iter).payload[1] == sim->ocell.payload[1]) && 
-                            ((*iter).payload[0] == sim->ocell.payload[0]) 
-                            ){
-                            fprintf(stderr, " +OUT Port[%s] : ID-Qos-Payload <%2x - %d>-[%8x %8x %8x %8x]  ** remain %d active FLIT +OK    @%x\n",
-                                    (*iter).port? "B":"A", (*iter).id, (*iter).qos,
-                                    (*iter).payload[3], 
-                                    (*iter).payload[2], 
-                                    (*iter).payload[1], 
-                                    (*iter).payload[0],
-                                    sim->dutActive.size() - 1,
-                                    sim->signal.tick
-                                    );
-                        }else{
-                            fprintf(stderr, " +OUT Port[%s] : ID-Qos-Payload <%2x - %d>-[%8x %8x %8x %8x]  ** remain %d active FLIT +ERROR  @%x\n",
-                                    (*iter).port? "B":"A", (*iter).id, (*iter).qos,
-                                    (*iter).payload[3], 
-                                    (*iter).payload[2], 
-                                    (*iter).payload[1], 
-                                    (*iter).payload[0],
-                                    sim->dutActive.size() - 1,
-                                    sim->signal.tick
-                                    );
-                            fprintf(stderr, "                                      ->[%8x %8x %8x %8x]<- +ERROR_DATA\n",
-                                    sim->ocell.payload[3], 
-                                    sim->ocell.payload[2], 
-                                    sim->ocell.payload[1], 
-                                    sim->ocell.payload[0]
-                                    );
-                            *error      = 1;
-
-                        }
-#endif
-
 						// same ID must be the first !
 						sim->dutActive.erase(iter);
 						break;
@@ -570,6 +529,7 @@ extern "C" {
 			}
 		}
 
+        *conflict_c = 0;
 		if(sim->signal.pre_ready_c && sim->signal.valid_c){
 			sim->ocell.id   = sim->signal.id_c;
 			sim->ocell.qos  = sim->signal.qos_c;
@@ -584,6 +544,32 @@ extern "C" {
             // check out 
             if(sim->checkOCell() == false)
                 *error = 1;
+
+            // procese Cconflict
+            if(sim->conflictC.size() > 0){
+                if(sim->signal.pre_ready_c && sim->signal.valid_c){
+                    if( sim->conflictC.at(0).id  == sim->signal.id_c &&
+                        sim->conflictC.at(0).qos == sim->signal.qos_c
+                        ){
+
+                    
+                        *conflict_c = 1;
+                        sim->conflictC.erase(sim->conflictC.begin());
+                        fprintf(stderr, " +Conflict -------------> {%2x - %d}-[%8x %8x %8x %8x]  @%x\n",
+                                sim->ocell.id, sim->ocell.qos,
+                                sim->ocell.payload[3], 
+                                sim->ocell.payload[2], 
+                                sim->ocell.payload[1], 
+                                sim->ocell.payload[0], 
+                                sim->signal.tick
+                                );
+                        sim->showStatus();
+                        sim->dutPending.push_back( sim->ocell );
+                        //sim->release_delay.push_back( rand()%32 + 1 );
+                        sim->release_delay.push_back( 5 );
+                    }
+                }
+            }
 
             sim->idle_det = 0;
 		}else{

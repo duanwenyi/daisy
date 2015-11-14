@@ -484,7 +484,7 @@ module ENIGMA_BUFFER(/*autoarg*/
         hungry_det   <= 1'b0;
       else if( (&hungry_cnt))
         hungry_det   <= 1'b1;
-      else if(local_flit_empty)
+      else if(local_flit_single & vld_c_o_en)
         hungry_det   <= 1'b0;
 
     wire                            first_same_seq_id = local_flit_single & i_seek_id == id_c;
