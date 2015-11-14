@@ -464,7 +464,8 @@ extern "C" {
 		*error      = 0;
 
 		*conflict_c = 0;
-        *ready_c    = (rand()%4) != 0;
+        *ready_c    = (rand()%6) != 0;
+        //*ready_c    = 1;
 #if 1
 		// process Realease
 		if(sim->dutPending.size() > 0){

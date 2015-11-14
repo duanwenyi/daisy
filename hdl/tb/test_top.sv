@@ -44,7 +44,7 @@ module TH;
    always @(posedge clk or negedge rst_n)
      if(~rst_n)
        cnt    <= 32'b0;
-     else if(valid_c)
+     else if(valid_c & ready_c)
        cnt    <= 32'b0;
      else
        cnt    <= cnt + 1;
