@@ -143,7 +143,7 @@ bool EnigmaSim::isIDActive(int id){
 }
 
 bool EnigmaSim::isIDNotFull(int id){
-    if( getSeqNums(id) < ENIGMA_SEQ_ID_MAX){
+    if( getSeqNums(id) < (ENIGMA_SEQ_ID_MAX -1) ){
         return true;
     }else{
         return false;
@@ -589,13 +589,14 @@ extern "C" {
             // procese Cconflict
             if(sim->conflictC.size() > 0){
                 if(sim->signal.pre_ready_c && sim->signal.valid_c){
-                    if( sim->conflictC.at(0).id  == sim->signal.id_c &&
-                        sim->conflictC.at(0).qos == sim->signal.qos_c
+                    if( sim->conflictC.back().id  == sim->signal.id_c &&
+                        sim->conflictC.back().qos == sim->signal.qos_c
                         ){
 
                     
                         *conflict_c = 1;
-                        sim->conflictC.erase(sim->conflictC.begin());
+                        //sim->conflictC.erase(sim->conflictC.begin());
+                        sim->conflictC.pop_back();
                         fprintf(stderr, " +Conflict -------------> {%2x - %d}-[%8x %8x %8x %8x]  @%x\n",
                                 sim->ocell.id, sim->ocell.qos,
                                 sim->ocell.payload[3], 
@@ -606,8 +607,8 @@ extern "C" {
                                 );
                         sim->showStatus();
                         sim->dutPending.push_back( sim->ocell );
-                        //sim->release_delay.push_back( rand()%32 + 1 );
-                        sim->release_delay.push_back( 5 );
+                        sim->release_delay.push_back( rand()%16 + 1 );
+                        //sim->release_delay.push_back( 5 );
                     }
                 }
             }
