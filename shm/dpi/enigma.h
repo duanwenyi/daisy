@@ -46,6 +46,8 @@ enum OUT_VALID{
 	VALID_OUT   = 1
 };
 
+#define ENIGMA_SEQ_ID_MAX 16
+
 class EnigmaSim
 {
  public:
@@ -70,6 +72,8 @@ class EnigmaSim
     bool isIDUnique(int id);
 
     int  getFirstPtr(int id);
+    bool isIDNotFull(int id);
+    int  getSeqNums(int id);
 
     bool checkOCell();
 	void showStatus();

@@ -142,6 +142,41 @@ bool EnigmaSim::isIDActive(int id){
     return false;
 }
 
+bool EnigmaSim::isIDNotFull(int id){
+    if( getSeqNums(id) < ENIGMA_SEQ_ID_MAX){
+        return true;
+    }else{
+        return false;
+    }
+}
+
+int EnigmaSim::getSeqNums(int id){
+    vector<ENIGMA_FLIT_S>::iterator iter = dutActive.begin();
+    int count = 0;
+
+    if(dutActive.size() > 0){
+        while( iter != dutActive.end()){
+            if( (*iter).id == id){
+                count++;
+            }
+            iter++;
+        }
+    }
+
+    if(dutActive.size() > 0){
+        iter = dutPending.begin();
+        while( iter != dutPending.end()){
+            if( (*iter).id == id){
+                count++;
+            }
+            iter++;
+        }
+    }
+
+
+    return count;
+}
+
 bool EnigmaSim::isIDPending(int id){
     vector<ENIGMA_FLIT_S>::iterator iter = dutPending.begin();
     
@@ -342,8 +377,11 @@ extern "C" {
 
 		if(sim->portA.size() > 0){
             cell = sim->portA.back();
-
-			*valid_a = (rand()%4 != 0);
+            
+            if( sim->isIDNotFull(cell.id) )
+                *valid_a = (rand()%4 != 0);
+            else
+                *valid_a = 0;
 		
 			if(sim->signal.pre_valid_a && sim->signal.ready_a){
 			
@@ -402,8 +440,11 @@ extern "C" {
 		if(sim->portB.size() > 0){
             cell = sim->portB.back();
 
-			*valid_b = (rand()%5 != 0);
-		
+            if( sim->isIDNotFull(cell.id) )
+                *valid_b = (rand()%4 != 0);
+            else
+                *valid_b = 0;
+
 			if(sim->signal.pre_valid_b && sim->signal.ready_b){
 			
 				sim->portB.pop_back();

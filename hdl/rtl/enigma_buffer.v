@@ -161,7 +161,7 @@ module ENIGMA_CELL (/*AUTOARG*/
     wire           init_load_qos_bin = i_load_en_hit & ( ~i_load_seq_id_en | (delect_en_hit_the_id & i_load_seq_num == 4'b1));   // the only ID
     wire           invoke_qos_bin    = ( (delect_en_hit_the_id & (id_seq_num == 4'd1)) | 
                                          (release_en_hit & ~id_seq_not_single) );
-    wire           dim_local_qos_bin = cur_c_o_en | lock_en_hit;
+    wire           dim_local_qos_bin = cur_c_o_en | lock_en_hit | delect_en_hit;
     always @(posedge clk or negedge rst_n)
       if(~rst_n)
         vote_qos_bin    <= 4'b0;
