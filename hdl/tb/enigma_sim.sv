@@ -56,7 +56,7 @@ module ENIGMA_SIM(/*autoarg*/
                                                       input [31:0] payload_c_2,
                                                       input [31:0] payload_c_3,
 
-                                                      input [4:0]  id_c,
+                                                      input [5:0]  id_c,
                                                       input [1:0]  qos_c,
                                                       input        valid_c,
                                                       // debug using

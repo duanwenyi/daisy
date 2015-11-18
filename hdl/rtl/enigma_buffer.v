@@ -266,7 +266,8 @@ module ENIGMA_BUFFER(/*autoarg*/
     wire                            local_buf_not_full = ( (local_flit_nums < (ENIGMA_CELL_MAX-1)) | 
                                                            (local_flit_nums == (ENIGMA_CELL_MAX-1)) & ~i_seek_en );
 
-    wire                            port_sel_invert = ~(valid_a ^ valid_b);
+    //wire                            port_sel_invert = ~(valid_a ^ valid_b);
+    wire                            port_sel_invert = (valid_a & ~ready_a) | (valid_b & ~ready_b);
     always @(posedge clk or negedge rst_n)
       if(~rst_n)
         port_sel   <= 1'b0;
