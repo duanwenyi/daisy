@@ -48,6 +48,22 @@ enum OUT_VALID{
 
 #define ENIGMA_SEQ_ID_MAX 16
 
+typedef struct IN_CONSTRAINT_S {
+	int port_A_num;  // group out A port FLITs when group B
+	int port_B_num;  // group out B port FLITs when group A
+}IN_CONSTRAINT, *IN_CONSTRAINT_p;
+
+typedef struct CONFLICT_OP_S {
+	int id;     // The ID to conflict
+	int seq;    // the ID's sequence numbers when ID not the single
+    int nums;   // release the ID after nums FLITs
+}CONFLICT_OP, *CONFLICT_OP_p;
+
+typedef struct OUT_CONSTRAINT_S {
+    int pending_nums;   // group pending numbers of FLIT
+    int transfer_nums;  // group transfer numbers of FLIT
+}OUT_CONSTRAINT, *OUT_CONSTRAINT_p;
+
 class EnigmaSim
 {
  public:
@@ -58,7 +74,8 @@ class EnigmaSim
 
 	void loadStimulate();
 
-	int                 stim_mode;  // 1: manual   0:auto random
+	int                 stim_mode;        // 1: manual   0:auto random
+	int                 constraint_mode;  // 1: manual   0:auto
 	
 
 	void joinOneFlit(vector<ENIGMA_FLIT> *group, int port, int id, int qos);
@@ -91,12 +108,30 @@ class EnigmaSim
 	vector<ENIGMA_FLIT> conflictC;
 	vector<ENIGMA_FLIT> releaseC;
 
+	vector<std::string>      tc_list;
+
+	vector<OUT_CONSTRAINT> out_constraint;
+	vector<IN_CONSTRAINT>  in_constraint;
+	vector<CONFLICT_OP>    conflict_op;
+    
+    void reducePortA();
+    void reducePortB();
+    void increasePortC();
+
+    bool genValidPortA(int ready);
+    bool genValidPortB(int ready);
+    bool genReadyPortC();
+
+    void loadTC();
+    void loadConstraint();
+    void showLoadStatus();
+
 	ENIGMA_FLIT         ocell;             // output Flit of C port
 	int                 pre_out_vld_mark;  // pre-cycle output valid
 	vector<int>         release_delay;     // bind process to dutPending !
 
 	ENIGMA_PORT_SIGNAL  signal;
-    bool                error;
+    int                 error;
 
     int                 flit_nums;
 

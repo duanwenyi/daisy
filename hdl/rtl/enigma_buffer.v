@@ -447,7 +447,8 @@ module ENIGMA_BUFFER(/*autoarg*/
       if(~rst_n)
         pre_sel_en   <= {ENIGMA_CELL_MAX{1'b0}};
       else
-        pre_sel_en   <= (|local_flit_nums[4:1] | (local_flit_single & load_c_vote_en)) ? cur_sel_en : i_seek_sel;
+        //pre_sel_en   <= (|local_flit_nums[4:1] | (local_flit_single & load_c_vote_en)) ? cur_sel_en : i_seek_sel;
+        pre_sel_en   <= (|local_flit_nums[4:1] | (local_flit_nums[0] & load_c_vote_en)) ? cur_sel_en : i_seek_sel;
 
     always @(posedge clk or negedge rst_n)
       if(~rst_n)

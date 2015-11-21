@@ -1,0 +1,27 @@
+# Port A in FLITs , format : A [ID] [Qos] {repeat times when using AM}
+A 5  3
+A 24 2
+A 14 1
+A 14 0
+A 14 3
+A 7 3
+AM 5 1 3
+A 8 3
+# Port B in FLITs , format : B [ID] [Qos] {repeat times when using BM}
+B 11 1
+B 11 0
+BM 11 2 4
+B 3 0
+B 9 2
+B 25 2
+BM 6 1 5
+# IN Port Constraint , format : IN [Port_A_IN_NUMS] [Port_B_IN_NUMS]
+IN 3 0
+IN 0 3
+IN 5 6
+# Confliction Constraint , format : CC [ID] [SEQ_NUMBER_OF_SAME_ID_GROUP] [PENDING_FLIT_NUMS]
+CC 14 2 3
+# OUT C Port Constraint , format : CS [PENDING_FLIT_NUMS] [TRANSFER_FLIT_NUMS]
+CS 6 5
+CS 12 5
+CS 2 30
