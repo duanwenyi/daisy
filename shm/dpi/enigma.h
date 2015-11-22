@@ -54,6 +54,7 @@ typedef struct IN_CONSTRAINT_S {
 }IN_CONSTRAINT, *IN_CONSTRAINT_p;
 
 typedef struct CONFLICT_OP_S {
+    int hit;    // mark 1 when hit , mark 2 when need release !
 	int id;     // The ID to conflict
 	int seq;    // the ID's sequence numbers when ID not the single
     int nums;   // release the ID after nums FLITs
@@ -71,8 +72,6 @@ class EnigmaSim
 	~EnigmaSim();
 	
 	void setRandomSeed(int seed);
-
-	void loadStimulate();
 
 	int                 stim_mode;        // 1: manual   0:auto random
 	int                 constraint_mode;  // 1: manual   0:auto
@@ -105,15 +104,18 @@ class EnigmaSim
 
 	vector<ENIGMA_FLIT> portC;
 
-	vector<ENIGMA_FLIT> conflictC;
-	vector<ENIGMA_FLIT> releaseC;
-
 	vector<std::string>      tc_list;
 
 	vector<OUT_CONSTRAINT> out_constraint;
 	vector<IN_CONSTRAINT>  in_constraint;
 	vector<CONFLICT_OP>    conflict_op;
-    
+
+    int  getSeqNumInOut(int id);   // count from 0
+    int  checkConflict();          // must invoke after ocell is filled !
+    int  checkRealse();            // return the ID
+    void pendingRemoveID(int id);  // invoke in checkRealse()
+
+
     void reducePortA();
     void reducePortB();
     void increasePortC();

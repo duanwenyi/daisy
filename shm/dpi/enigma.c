@@ -14,10 +14,6 @@ EnigmaSim::EnigmaSim(){
 	dutPending.clear();
 	portC.clear();
 	
-	conflictC.clear();
-	releaseC.clear();
-
-	release_delay.clear();
 	stim_mode = 0;
     constraint_mode = 0;
 
@@ -238,9 +234,6 @@ bool EnigmaSim::isIDUnique(int id){
 }
 
 void EnigmaSim::loadTC(){
-    // clear status first
-    error  = 0;
-
 	std::ifstream fin("tc_list", std::ios::in); 
 	char line[1024]={0}; 
     std::string tc;
@@ -266,6 +259,18 @@ void EnigmaSim::loadTC(){
 }
 
 void EnigmaSim::loadConstraint(){
+    // clear status first
+    error  = 0;
+    out_constraint.clear();
+    in_constraint.clear();
+    conflict_op.clear();
+
+	portA.clear();
+	portB.clear();
+	dutActive.clear();
+	dutPending.clear();
+	portC.clear();
+
     if(tc_list.size() > 0){
         std::ifstream fin(tc_list.at(0).c_str(), std::ios::in); 
 
@@ -330,6 +335,7 @@ void EnigmaSim::loadConstraint(){
                             par2  = std::atoi( par2_char.c_str());
 
                             CONFLICT_OP cfl;
+                            cfl.hit  = 0;
                             cfl.id   = par0;
                             cfl.seq  = par1;
                             cfl.nums = par2;
@@ -357,7 +363,113 @@ void EnigmaSim::loadConstraint(){
         tc_list.erase( tc_list.begin() );
 
     }
+}
 
+int  EnigmaSim::getSeqNumInOut(int id){
+    int nums;
+    vector<ENIGMA_FLIT>::iterator iter	= portC.begin();
+    for(; iter != portC.end();){
+        if( (*iter).id == id ){
+            nums++;
+        }
+        iter++;
+    }
+    
+    return nums;
+}
+
+
+int EnigmaSim::checkConflict(){
+    int mark_hit = 0;
+
+    if(conflict_op.size() > 0){
+        vector<CONFLICT_OP>::iterator iter	= conflict_op.begin();
+        // reduce FLIT nums in all hited cell
+        for(; iter != conflict_op.end();){
+            if( (*iter).hit ){
+                if( (*iter).nums > 0 )
+                    (*iter).nums--;
+
+                // mark it need release now !
+                if((*iter).nums == 0 )
+                    (*iter).hit++;
+            }
+            iter++;
+        }
+        
+        // check whether thd id & seq is hit
+        iter	= conflict_op.begin();
+        for(; iter != conflict_op.end();){
+            if( (*iter).id == ocell.id && 
+                !(*iter).hit  &&
+                ((*iter).seq = getSeqNumInOut(ocell.id) )
+                ){
+                (*iter).hit = 1;
+                mark_hit =  1;
+                
+                fprintf(stderr, " +Conflict -------------> {%2x - %d}-[%8x %8x %8x %8x]  @%x\n",
+                        ocell.id, ocell.qos,
+                        ocell.payload[3], 
+                        ocell.payload[2], 
+                        ocell.payload[1], 
+                        ocell.payload[0], 
+                        signal.tick
+                        );
+                
+                showStatus();
+                dutPending.push_back( ocell );
+
+                break;
+            }
+            iter++;
+        }
+    }
+
+    return mark_hit;
+}
+
+void EnigmaSim::pendingRemoveID(int id){
+    if(dutPending.size() > 0){
+        vector<ENIGMA_FLIT>::iterator iter	= dutPending.begin();
+        for(; iter != dutPending.end();){
+            if( (*iter).id == id ){
+                dutPending.erase(iter);
+                fprintf(stderr, " +Release~~~~~~~~~~~~~~~> {%2x - %d}-[%8x %8x %8x %8x]  @%x\n",
+                        (*iter).id, (*iter).qos,
+                        (*iter).payload[3], 
+                        (*iter).payload[2], 
+                        (*iter).payload[1], 
+                        (*iter).payload[0],
+                        signal.tick
+                        );
+                showStatus();
+                break;
+            }
+            iter++;
+        }
+    }
+}
+
+int  EnigmaSim::checkRealse(){
+    int release_id = -1;
+    if(conflict_op.size() > 0){
+        vector<CONFLICT_OP>::iterator iter	= conflict_op.begin();
+        // reduce FLIT nums in all hited cell
+        for(; iter != conflict_op.end();){
+            if( (*iter).hit > 1 ){
+                release_id = (*iter).id;
+
+                // remove pending item
+                pendingRemoveID(release_id);
+                // remove current constraint
+                conflict_op.erase(iter);
+                break;
+            }
+            iter++;
+        }
+    }
+
+    return release_id;
 }
 
 void EnigmaSim::showLoadStatus(){
@@ -411,68 +523,6 @@ void EnigmaSim::showLoadStatus(){
 
 }
 
-void EnigmaSim::loadStimulate(){
-
-	std::ifstream fin("stim.txt", std::ios::in); 
-	char line[1024]={0}; 
-	std::string port  = ""; 
-	std::string id_c  = ""; 
-	std::string qos_c = ""; 
-	int id  = 0;
-	int qos = 0;
-	if(!fin){
-		std::cout << " +No stim.txt file . Begin generate stimualte with auto random mode !\n" << std::endl;
-	}else{
-		std::cout << "Port ID Qos  --> loading " << std::endl;
-		stim_mode = 1;
-
-		while(fin.getline(line, sizeof(line))) 
-			{ 
-				std::stringstream word(line); 
-				word >> port; 
-				word >> id_c; 
-				word >> qos_c; 
-
-				id  = std::atoi( id_c.c_str());
-				qos = std::atoi( qos_c.c_str());
-
-				if(qos == -1){
-					qos = rand() & 0x3;
-				}
-				
-				if(port.compare("A") == 0){
-					if(id == -1){
-						id = rand() & 0x1F;
-					}
-
-					genOneFlitA( id, qos);
-				}else if(port.compare("B") == 0){
-					if(id == -1){
-						id = rand() & 0x1F;
-					}
-
-					genOneFlitB( id, qos);
-				}else if(port.compare("C") == 0){
-					if(id == -1){
-						id = rand() & 0x3F;
-					}
-					joinOneFlit( &conflictC, !!(id & 0x20) , id & 0x1F, qos);
-				}else if(port.compare("R") == 0){
-					if(id == -1){
-						id = rand() & 0x3F;
-					}
-					joinOneFlit( &releaseC, !!(id & 0x20) , id & 0x1F, qos);
-				}
-
-                fprintf(stderr," %s\t %x\t %x \n", port.c_str(), id, qos);
-				//std::cout << port << " " << id << " " << qos << std::endl; 
-			} 
-		fin.clear(); 
-	}
-	fin.close(); 
-
-}
-
 void EnigmaSim::joinOneFlit(vector<ENIGMA_FLIT> *group, int port, int id, int qos){
 	
 	ENIGMA_FLIT cell;
@@ -491,7 +541,8 @@ void EnigmaSim::joinOneFlit(vector<ENIGMA_FLIT> *group, int port, int id, int qo
 
     flit_nums++;
 
-	group->insert( group->begin(), cell );
+    group->push_back( cell );
+	//group->insert( group->begin(), cell );
 }
 
 void EnigmaSim::genOneFlitA(int id, int qos){
@@ -504,7 +555,8 @@ void EnigmaSim::genOneFlitB(int id, int qos){
 
 
 void EnigmaSim::reducePortA(){
-    portA.pop_back();
+    //portA.pop_back();
+    portA.erase(portA.begin());
     
     if(portA.empty() && (in_constraint.size()>0)){
         in_constraint.clear();
@@ -514,7 +566,8 @@ void EnigmaSim::reducePortA(){
 }
 
 void EnigmaSim::reducePortB(){
-    portB.pop_back();
+    //portB.pop_back();
+    portB.erase(portB.begin());
     
     if(portB.empty() && (in_constraint.size()>0)){
         in_constraint.clear();
@@ -543,7 +596,9 @@ void EnigmaSim::increasePortC(){
             fprintf(stderr," ---->TC stimulation is over ! Discard all C Port FLIT Constraint now !\n");
             
             if(error == 0){
-                fprintf(stderr," ---->TC PASS\n");
+                fprintf(stderr," ---->TC PASS\n\n");
+
+                loadConstraint();
             }else{
                 fprintf(stderr," ---->TC FAIL with %d ERROR\n", error);
             }
@@ -660,7 +715,8 @@ extern "C" {
         ENIGMA_FLIT cell;
 
 		if(sim->portA.size() > 0){
-            cell = sim->portA.back();
+            //cell = sim->portA.back();
+            cell = sim->portA.at(0);
             
             if( sim->isIDNotFull(cell.id) )
                 *valid_a = (rand()%4 != 0) && sim->genValidPortA(sim->signal.ready_a);
@@ -684,7 +740,8 @@ extern "C" {
 						);
 #endif
                 if(sim->portA.size() > 0){
-                    cell = sim->portA.back();
+                    //cell = sim->portA.back();
+                    cell = sim->portA.at(0);
                 }else{
                     *valid_a = 0;
                 }
@@ -722,7 +779,8 @@ extern "C" {
         ENIGMA_FLIT cell;
 
 		if(sim->portB.size() > 0){
-            cell = sim->portB.back();
+            //cell = sim->portB.back();
+            cell = sim->portB.at(0);
 
             if( sim->isIDNotFull(cell.id) )
                 *valid_b = (rand()%4 != 0) && sim->genValidPortB(sim->signal.ready_b);
@@ -746,7 +804,8 @@ extern "C" {
 						);
 #endif
                 if(sim->portB.size() > 0){
-                    cell = sim->portB.back();
+                    //cell = sim->portB.back();
+                    cell = sim->portB.at(0);
                 }else{
                     *valid_b = 0;
                 }
@@ -789,53 +848,18 @@ extern "C" {
 		*error      = 0;
 
         *ready_c    = ((rand()%6) != 0)  && sim->genReadyPortC();
-        //*ready_c    = 1;
-#if 1
+
 		// process Realease
-		if(sim->dutPending.size() > 0){
-			vector<int>::iterator iterA = sim->release_delay.begin();
-			vector<ENIGMA_FLIT>::iterator iterB	= sim->dutPending.begin();
-			for(; iterB != sim->dutPending.end();){
+        int rel_id  = sim->checkRealse();
+        if( rel_id != -1 ){
+            *release_c   = 1;
+            *releaseid_c = rel_id;
+        }else{
+            *release_c   = 0;
+            *releaseid_c = rand() & 0x3F;
+        }
 
-				if( (*iterA) > 0)
-					(*iterA)--;
-
-				if((*iterA) == 0){
-					*release_c  = 1;
-					*releaseid_c = (*iterB).id;
-
-					// remove one conflicted pending item
-					sim->dutPending.erase(iterB);
-					sim->release_delay.erase(iterA);
-
-
-                    fprintf(stderr, " +Release~~~~~~~~~~~~~~~> {%2x - %d}-[%8x %8x %8x %8x]  @%x\n",
-							(*iterB).id, (*iterB).qos,
-							(*iterB).payload[3], 
-							(*iterB).payload[2], 
-							(*iterB).payload[1], 
-							(*iterB).payload[0],
-                            sim->signal.tick
-                            );
-                    sim->showStatus();
-					break;
-				}
-
-				iterA++;
-				iterB++;
-			}
-			
-
-		}else{
-			sim->release_delay.clear();
-
-			*release_c   = 0;
-			*releaseid_c = rand() & 0x3F;
-		}
-
-#endif
-
-		// process Conflict
+		// process !Conflict
 		if( (sim->pre_out_vld_mark == VALID_OUT) ){
 
 			if(!sim->signal.pre_conflict_c){
@@ -873,31 +897,7 @@ extern "C" {
                 *error = 1;
 
             // procese Cconflict
-            if(sim->conflictC.size() > 0){
-                if(sim->signal.pre_ready_c && sim->signal.valid_c){
-                    if( sim->conflictC.back().id  == sim->signal.id_c &&
-                        sim->conflictC.back().qos == sim->signal.qos_c
-                        ){
-
-                    
-                        *conflict_c = 1;
-                        //sim->conflictC.erase(sim->conflictC.begin());
-                        sim->conflictC.pop_back();
-                        fprintf(stderr, " +Conflict -------------> {%2x - %d}-[%8x %8x %8x %8x]  @%x\n",
-                                sim->ocell.id, sim->ocell.qos,
-                                sim->ocell.payload[3], 
-                                sim->ocell.payload[2], 
-                                sim->ocell.payload[1], 
-                                sim->ocell.payload[0], 
-                                sim->signal.tick
-                                );
-                        sim->showStatus();
-                        sim->dutPending.push_back( sim->ocell );
-                        sim->release_delay.push_back( rand()%16 + 1 );
-                        //sim->release_delay.push_back( 5 );
-                    }
-                }
-            }
+            *conflict_c = sim->checkConflict();
 
             sim->idle_det = 0;
 
