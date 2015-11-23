@@ -1,0 +1,296 @@
+# SimVision Command Script (Mon Nov 23 11:00:13 AM EST 2015)
+#
+# Version 13.10.p001
+#
+# You can restore this configuration with:
+#
+#     simvision -input /home/apachee/github/daisy/sim/enigma_fast.svcf
+#
+
+
+#
+# Preferences
+#
+preferences set plugin-enable-svdatabrowser-new 1
+preferences set plugin-enable-groupscope 0
+preferences set sb-display-values 1
+preferences set plugin-enable-interleaveandcompare 0
+preferences set whats-new-dont-show-at-startup 1
+
+#
+# Databases
+#
+database require waves -search {
+	./waves.shm/waves.trn
+	/home/apachee/github/daisy/sim/waves.shm/waves.trn
+}
+
+#
+# Groups
+#
+catch {group new -name portA_in -overlay 0}
+catch {group new -name {Group 2} -overlay 0}
+catch {group new -name portB_in -overlay 0}
+catch {group new -name portC_out -overlay 0}
+catch {group new -name MEM -overlay 0}
+
+group using portA_in
+group set -overlay 0
+group set -comment {}
+group clear 0 end
+
+group insert \
+     {((waves::TH.enigma_buffer.ready_a === 'b1) && (waves::TH.enigma_buffer.valid_a === 'b1))}  \
+     {waves::TH.enigma_buffer.U_ENIGMA_PORT_A.local_flit_nums[5:0]}  \
+     waves::TH.enigma_buffer.U_ENIGMA_PORT_A.ready_c  \
+     waves::TH.enigma_buffer.U_ENIGMA_PORT_A.valid_c  \
+     {waves::TH.enigma_buffer.id_a[4:0]}  \
+     {waves::TH.enigma_buffer.qos_a[1:0]}  \
+     {waves::TH.enigma_buffer.payload_a[127:0]}  \
+     waves::TH.enigma_sim.clk  \
+     waves::TH.enigma_buffer.ready_a  \
+     waves::TH.enigma_buffer.valid_a  \
+     waves::TH.enigma_buffer.ready_c 
+
+group using {Group 2}
+group set -overlay 0
+group set -comment {}
+group clear 0 end
+
+
+group using portB_in
+group set -overlay 0
+group set -comment {}
+group clear 0 end
+
+group insert \
+     {((waves::TH.enigma_buffer.ready_b === 'b1) && (waves::TH.enigma_buffer.valid_b === 'b1))}  \
+     {waves::TH.enigma_buffer.U_ENIGMA_PORT_B.local_flit_nums[5:0]}  \
+     waves::TH.enigma_buffer.U_ENIGMA_PORT_B.release_c  \
+     {waves::TH.enigma_buffer.U_ENIGMA_PORT_B.releaseid_c[4:0]}  \
+     waves::TH.enigma_buffer.U_ENIGMA_PORT_B.conflict_c  \
+     waves::TH.enigma_buffer.U_ENIGMA_PORT_B.valid_c  \
+     {waves::TH.enigma_buffer.U_ENIGMA_PORT_B.id_c[4:0]}  \
+     {waves::TH.enigma_buffer.U_ENIGMA_PORT_B.valid[15:0]}  \
+     {waves::TH.enigma_buffer.U_ENIGMA_PORT_B.vote_en[15:0]}  \
+     waves::TH.enigma_buffer.U_ENIGMA_PORT_B.load_c_vote_en  \
+     waves::TH.enigma_buffer.valid_b  \
+     waves::TH.enigma_buffer.ready_b  \
+     {waves::TH.enigma_buffer.id_b[4:0]}  \
+     {waves::TH.enigma_buffer.qos_b[1:0]}  \
+     {waves::TH.enigma_buffer.payload_b[127:0]} 
+
+group using portC_out
+group set -overlay 0
+group set -comment {}
+group clear 0 end
+
+group insert \
+     {waves::TH.enigma_buffer.payload_c[127:0]}  \
+     waves::TH.enigma_buffer.valid_c  \
+     waves::TH.enigma_buffer.ready_c  \
+     {((waves::TH.enigma_buffer.ready_c === 'b1) && (waves::TH.enigma_buffer.valid_c === 'b1))}  \
+     {waves::TH.enigma_buffer.id_c[5:0]}  \
+     {waves::TH.enigma_buffer.qos_c[1:0]}  \
+     {waves::TH.enigma_buffer.cur_hi_qos_bin_a[3:0]}  \
+     waves::TH.enigma_buffer.port_sel  \
+     {waves::TH.enigma_buffer.cur_hi_qos_bin_b[3:0]}  \
+     {waves::TH.enigma_sim.tick[15:0]}  \
+     waves::TH.enigma_sim.error  \
+     waves::TH.enigma_buffer.conflict_c  \
+     waves::TH.enigma_buffer.port_sel_ff  \
+     waves::TH.enigma_buffer.ready_c_a  \
+     waves::TH.enigma_buffer.ready_c_b 
+
+group using MEM
+group set -overlay 0
+group set -comment {}
+group clear 0 end
+
+
+#
+# Mnemonic Maps
+#
+mmap new -reuse -name {Boolean as Logic} -radix %b -contents {{%c=FALSE -edgepriority 1 -shape low}
+{%c=TRUE -edgepriority 1 -shape high}}
+mmap new -reuse -name {Example Map} -radix %x -contents {{%b=11???? -bgcolor orange -label REG:%x -linecolor yellow -shape bus}
+{%x=1F -bgcolor red -label ERROR -linecolor white -shape EVENT}
+{%x=2C -bgcolor red -label ERROR -linecolor white -shape EVENT}
+{%x=* -label %x -linecolor gray -shape bus}}
+
+#
+# Waveform windows
+#
+if {[catch {window new WaveWindow -name "Waveform 1" -geometry 1266x1001+619+0}] != ""} {
+    window geometry "Waveform 1" 1266x1001+619+0
+}
+window target "Waveform 1" on
+waveform using {Waveform 1}
+waveform sidebar select designbrowser
+waveform set \
+    -primarycursor TimeA \
+    -signalnames name \
+    -signalwidth 175 \
+    -units ns \
+    -valuewidth 75
+waveform baseline set -time 444.12ns
+
+set id [waveform add -signals  {
+	waves::TH.enigma_buffer.clk
+	waves::TH.enigma_buffer.rst_n
+	} ]
+
+set groupId0 [waveform add -groups portC_out]
+set gpGlist0 [waveform hierarchy contents $groupId0]
+set gpID0 [lindex $gpGlist0 0]
+foreach {name attrs}  {
+    {waves::TH.enigma_buffer.payload_c[127:0]} {-radix %x}
+    waves::TH.enigma_buffer.valid_c {-color #ff9900 -namecolor #00ff00 -bgcolor #000000}
+    waves::TH.enigma_buffer.ready_c {}
+    {((waves::TH.enigma_buffer.ready_c === 'b1) && (waves::TH.enigma_buffer.valid_c === 'b1))} {-color #ff00ff}
+    {waves::TH.enigma_buffer.id_c[5:0]} {-radix %x}
+    {waves::TH.enigma_buffer.qos_c[1:0]} {-radix %x}
+    {waves::TH.enigma_buffer.cur_hi_qos_bin_a[3:0]} {}
+    waves::TH.enigma_buffer.port_sel {}
+    {waves::TH.enigma_buffer.cur_hi_qos_bin_b[3:0]} {}
+    {waves::TH.enigma_sim.tick[15:0]} {-radix %x -color #ffffff}
+    waves::TH.enigma_sim.error {-color #ff0000 -namecolor #ff0000 -bgcolor #000000}
+    waves::TH.enigma_buffer.conflict_c {}
+    waves::TH.enigma_buffer.port_sel_ff {}
+    waves::TH.enigma_buffer.ready_c_a {}
+    waves::TH.enigma_buffer.ready_c_b {}
+} childcmds {
+    {}
+    {}
+    {}
+    {}
+    {}
+    {
+        set id $gpID0
+        waveform hierarchy collapse $id
+    }
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+} {
+    set expected [ join [waveform signals -format fullpath $gpID0] ]
+    if {[string equal $name $expected] || $name == "cdivider"} {
+        if {$attrs != ""} {
+            eval waveform format $gpID0 $attrs
+        }
+        if { $childcmds != ""} {
+            eval $childcmds
+        }
+    }
+    set gpGlist0 [lrange $gpGlist0 1 end]
+    set gpID0 [lindex $gpGlist0 0]
+}
+
+
+set groupId0 [waveform add -groups portA_in]
+set gpGlist0 [waveform hierarchy contents $groupId0]
+set gpID0 [lindex $gpGlist0 0]
+foreach {name attrs}  {
+    {((waves::TH.enigma_buffer.ready_a === 'b1) && (waves::TH.enigma_buffer.valid_a === 'b1))} {-color #ff00ff}
+    {waves::TH.enigma_buffer.U_ENIGMA_PORT_A.local_flit_nums[5:0]} {}
+    waves::TH.enigma_buffer.U_ENIGMA_PORT_A.ready_c {}
+    waves::TH.enigma_buffer.U_ENIGMA_PORT_A.valid_c {}
+    {waves::TH.enigma_buffer.id_a[4:0]} {}
+    {waves::TH.enigma_buffer.qos_a[1:0]} {}
+    {waves::TH.enigma_buffer.payload_a[127:0]} {}
+    waves::TH.enigma_sim.clk {}
+    waves::TH.enigma_buffer.ready_a {-color #0099ff -namecolor #00ff00}
+    waves::TH.enigma_buffer.valid_a {-color #ff9900 -namecolor #00ff00}
+    waves::TH.enigma_buffer.ready_c {-color #ff9900 -namecolor #00ff00 -bgcolor #000000}
+} childcmds {
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+} {
+    set expected [ join [waveform signals -format fullpath $gpID0] ]
+    if {[string equal $name $expected] || $name == "cdivider"} {
+        if {$attrs != ""} {
+            eval waveform format $gpID0 $attrs
+        }
+        if { $childcmds != ""} {
+            eval $childcmds
+        }
+    }
+    set gpGlist0 [lrange $gpGlist0 1 end]
+    set gpID0 [lindex $gpGlist0 0]
+}
+
+
+set groupId0 [waveform add -groups portB_in]
+set gpGlist0 [waveform hierarchy contents $groupId0]
+set gpID0 [lindex $gpGlist0 0]
+foreach {name attrs}  {
+    {((waves::TH.enigma_buffer.ready_b === 'b1) && (waves::TH.enigma_buffer.valid_b === 'b1))} {-color #ff00ff}
+    {waves::TH.enigma_buffer.U_ENIGMA_PORT_B.local_flit_nums[5:0]} {}
+    waves::TH.enigma_buffer.U_ENIGMA_PORT_B.release_c {}
+    {waves::TH.enigma_buffer.U_ENIGMA_PORT_B.releaseid_c[4:0]} {}
+    waves::TH.enigma_buffer.U_ENIGMA_PORT_B.conflict_c {}
+    waves::TH.enigma_buffer.U_ENIGMA_PORT_B.valid_c {}
+    {waves::TH.enigma_buffer.U_ENIGMA_PORT_B.id_c[4:0]} {}
+    {waves::TH.enigma_buffer.U_ENIGMA_PORT_B.valid[15:0]} {}
+    {waves::TH.enigma_buffer.U_ENIGMA_PORT_B.vote_en[15:0]} {}
+    waves::TH.enigma_buffer.U_ENIGMA_PORT_B.load_c_vote_en {}
+    waves::TH.enigma_buffer.valid_b {-color #ff9900 -namecolor #99ff00}
+    waves::TH.enigma_buffer.ready_b {-color #0099ff -namecolor #99ff00}
+    {waves::TH.enigma_buffer.id_b[4:0]} {}
+    {waves::TH.enigma_buffer.qos_b[1:0]} {}
+    {waves::TH.enigma_buffer.payload_b[127:0]} {}
+} childcmds {
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+} {
+    set expected [ join [waveform signals -format fullpath $gpID0] ]
+    if {[string equal $name $expected] || $name == "cdivider"} {
+        if {$attrs != ""} {
+            eval waveform format $gpID0 $attrs
+        }
+        if { $childcmds != ""} {
+            eval $childcmds
+        }
+    }
+    set gpGlist0 [lrange $gpGlist0 1 end]
+    set gpID0 [lindex $gpGlist0 0]
+}
+
+set id [waveform add -signals  {
+	{waves::TH.enigma_buffer.payload_c[127:0]}
+	} ]
+
+waveform xview limits 165.75ns 567.58ns
+
+#
+# Waveform Window Links
+#
+

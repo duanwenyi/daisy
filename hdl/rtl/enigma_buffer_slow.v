@@ -59,28 +59,28 @@ module ENIGMA_CELL (/*AUTOARG*/
     input          i_load_sel;       // valid when i_load_en
     input [3:0]    i_load_seq_num;   // timing not good !
     input          i_load_seq_id_en; // for fixed i_load_seq_num timing , high for the ID is not the first !
-    input [4:0]    i_load_id;
+    input [5:0]    i_load_id;
     input [1:0]    i_load_qos;
 
     
     input          i_seek_en;        // for same ID detect
     input          i_seek_sel;       // valid when i_seek_en
-    input [4:0]    i_seek_id;
+    input [5:0]    i_seek_id;
     input [1:0]    i_seek_qos;
     output         o_seek_det;       // high when detected same ID
     
 
     input          release_en;       // single cycle to release current locked ID
-    input [4:0]    release_id;
+    input [5:0]    release_id;
 
 
     input          lock_en;
     input          delect_en;
-    input [4:0]    delect_id;
+    input [5:0]    delect_id;
     input          bypass;
     
     output         vote_en;
-    output [4:0]   vote_id;
+    output [5:0]   vote_id;
     output [1:0]   vote_qos;
     
     output [3:0]   vote_qos_bin;
@@ -95,7 +95,7 @@ module ENIGMA_CELL (/*AUTOARG*/
     // common group
     reg            valid;
     reg            lock;
-    reg [4:0]      id;
+    reg [5:0]      id;
     reg [1:0]      qos;
 
     reg [3:0]      id_seq_num;
@@ -137,7 +137,7 @@ module ENIGMA_CELL (/*AUTOARG*/
 
     always @(posedge clk or negedge rst_n)
       if(~rst_n)
-        {id, qos}      <= 7'b0;
+        {id, qos}      <= 1'b0;
       else if(i_seek_en_hit)
         {id, qos}      <= {i_seek_id, i_seek_qos};
 
@@ -189,39 +189,46 @@ module ENIGMA_CELL (/*AUTOARG*/
     
 endmodule // ENIGMA_CELL
 
-module ENIGMA_PORT(/*autoarg*/
+module ENIGMA_BUFFER(/*autoarg*/
     // Outputs
-    ready_i, valid_c, payload_c, id_c, qos_c, cur_hi_qos_bin,
+    ready_a, ready_b, valid_c, payload_c, id_c, qos_c,
     // Inputs
-    clk, rst_n, payload_i, id_i, qos_i, valid_i, conflict_c,
-    release_c, releaseid_c, ready_c
+    clk, rst_n, payload_a, id_a, qos_a, valid_a, payload_b, id_b,
+    qos_b, valid_b, conflict_c, release_c, releaseid_c, ready_c
     );
 
-    parameter  ENIGMA_CELL_MAX = 16;
+    parameter  ENIGMA_CELL_MAX = 24;
    
     input                           clk;
     input                           rst_n;
     
-    input [127:0]                   payload_i;
-    input [4:0]                     id_i;
-    input [1:0]                     qos_i;
-    input                           valid_i;
-    output reg                      ready_i;
+    // port A
+    input [127:0]                   payload_a;
+    input [4:0]                     id_a;
+    input [1:0]                     qos_a;
+    input                           valid_a;
+    output reg                      ready_a;
+
+    // port B
+    input [127:0]                   payload_b;
+    input [4:0]                     id_b;
+    input [1:0]                     qos_b;
+    input                           valid_b;
+    output reg                      ready_b;
 
     // output port C
     input                           conflict_c;
     input                           release_c;
-    input [4:0]                     releaseid_c;
+    input [5:0]                     releaseid_c;
 
     input                           ready_c;
     output reg                      valid_c;
     
     output reg [127:0]              payload_c;
-    output reg [4:0]                id_c;
+    output reg [5:0]                id_c;
     output reg [1:0]                qos_c;
 
-    output [3:0]                    cur_hi_qos_bin;
-
+    reg                             port_sel;        // 0: select A   1: select B
     reg [5:0]                       local_flit_nums;
 
     reg [5:0]                       hungry_cnt;      // count hungry FLIT
@@ -229,10 +236,11 @@ module ENIGMA_PORT(/*autoarg*/
 
     reg                             i_load_en;
     reg [ENIGMA_CELL_MAX-1:0]       i_load_sel;
-    reg [4:0]                       i_load_id;
+    reg [5:0]                       i_load_id;
     reg [1:0]                       i_load_qos;
     
-    reg [4:0]                       post_id_c;
+    wire [3:0]                      cur_hi_qos_bin;
+    reg [5:0]                       post_id_c;
     reg                             load_c_vote_en;
 
     wire [127:0]                    cur_sel_payload;
@@ -241,16 +249,16 @@ module ENIGMA_PORT(/*autoarg*/
     wire                            vld_c_o_en = valid_c & ready_c;
     wire                            delect_en  = vld_c_o_en_ff & ~conflict_c;
 
-    wire                            i_seek_en  = (valid_i & ready_i);
+    wire                            i_seek_en  = (valid_a & ready_a) | (valid_b & ready_b);
     wire [ENIGMA_CELL_MAX-1:0]      i_seek_sel;
-    wire [4:0]                      i_seek_id  = id_i;
-    wire [1:0]                      i_seek_qos = qos_i;
-    wire [127:0]                    i_seek_payload = payload_i;
+    wire [5:0]                      i_seek_id  = ready_b ? {1'b1,id_b} : {1'b0,id_a};
+    wire [1:0]                      i_seek_qos = ready_b ? qos_b : qos_a;
+    wire [127:0]                    i_seek_payload = ready_b ? payload_b : payload_a;
 
     wire [ENIGMA_CELL_MAX-1:0]      o_seek_det;
     wire [ENIGMA_CELL_MAX-1:0]      vote_en;
     wire [ENIGMA_CELL_MAX-1:0]      valid;
-    wire [4:0]                      vote_id[ENIGMA_CELL_MAX-1:0];
+    wire [5:0]                      vote_id[ENIGMA_CELL_MAX-1:0];
     wire [1:0]                      vote_qos[ENIGMA_CELL_MAX-1:0];
     wire [3:0]                      vote_qos_bin[ENIGMA_CELL_MAX-1:0];
 
@@ -258,12 +266,25 @@ module ENIGMA_PORT(/*autoarg*/
     wire                            local_buf_not_full = ( (local_flit_nums < (ENIGMA_CELL_MAX-1)) | 
                                                            (local_flit_nums == (ENIGMA_CELL_MAX-1)) & ~i_seek_en );
 
+    //wire                            port_sel_invert = ~(valid_a ^ valid_b);
+    wire                            port_sel_invert = (valid_a & ~ready_a) | (valid_b & ~ready_b);
     always @(posedge clk or negedge rst_n)
       if(~rst_n)
-        ready_i   <= 1'b1;
-      else
-        ready_i   <= local_buf_not_full & ~hungry_det;
+        port_sel   <= 1'b0;
+      else if(port_sel_invert)
+        port_sel   <= ~port_sel;
 
+    always @(posedge clk or negedge rst_n)
+      if(~rst_n)
+        ready_a   <= 1'b1;
+      else
+        ready_a   <= (~port_sel) & local_buf_not_full & ~hungry_det;
+
+    always @(posedge clk or negedge rst_n)
+      if(~rst_n)
+        ready_b   <= 1'b0;
+      else
+        ready_b   <= port_sel & local_buf_not_full & ~hungry_det;
 
     wire [ENIGMA_CELL_MAX-1:0]      cur_sel_en;
     reg [ENIGMA_CELL_MAX-1:0]       pre_sel_en;
@@ -273,7 +294,7 @@ module ENIGMA_PORT(/*autoarg*/
     wire [3:0]                      cur_hi_qos_bin_s[ENIGMA_CELL_MAX-1:0];
     wire [ENIGMA_CELL_MAX-1:0]      i_load_seq_id_en;
 
-    wire [4:0]                      vote_id_s[ENIGMA_CELL_MAX-1:0];
+    wire [5:0]                      vote_id_s[ENIGMA_CELL_MAX-1:0];
     wire [1:0]                      vote_qos_s[ENIGMA_CELL_MAX-1:0];
 
     // debug using
@@ -358,40 +379,56 @@ module ENIGMA_PORT(/*autoarg*/
                                                           cur_hi_qos_bin_ss[0] ? 4'b0001 : 4'b0000
                                                           );
     // should vote next after pre
-    assign cur_sel_en = ( vote_en[0] ? 16'h0001 :
-                          vote_en[1] ? 16'h0002 :
-                          vote_en[2] ? 16'h0004 :
-                          vote_en[3] ? 16'h0008 :
-                          vote_en[4] ? 16'h0010 :
-                          vote_en[5] ? 16'h0020 :
-                          vote_en[6] ? 16'h0040 :
-                          vote_en[7] ? 16'h0080 :
-                          vote_en[ 8] ? 16'h0100 :
-                          vote_en[ 9] ? 16'h0200 :
-                          vote_en[10] ? 16'h0400 :
-                          vote_en[11] ? 16'h0800 :
-                          vote_en[12] ? 16'h1000 :
-                          vote_en[13] ? 16'h2000 :
-                          vote_en[14] ? 16'h4000 :
-                          vote_en[15] ? 16'h8000 : 16'h0000
+    assign cur_sel_en = ( vote_en[0] ? 24'h00_0001 :
+                          vote_en[1] ? 24'h00_0002 :
+                          vote_en[2] ? 24'h00_0004 :
+                          vote_en[3] ? 24'h00_0008 :
+                          vote_en[4] ? 24'h00_0010 :
+                          vote_en[5] ? 24'h00_0020 :
+                          vote_en[6] ? 24'h00_0040 :
+                          vote_en[7] ? 24'h00_0080 :
+                          vote_en[ 8] ? 24'h00_0100 :
+                          vote_en[ 9] ? 24'h00_0200 :
+                          vote_en[10] ? 24'h00_0400 :
+                          vote_en[11] ? 24'h00_0800 :
+                          vote_en[12] ? 24'h00_1000 :
+                          vote_en[13] ? 24'h00_2000 :
+                          vote_en[14] ? 24'h00_4000 :
+                          vote_en[15] ? 24'h00_8000 :
+                          vote_en[16] ? 24'h01_0000 :
+                          vote_en[17] ? 24'h02_0000 :
+                          vote_en[18] ? 24'h04_0000 :
+                          vote_en[19] ? 24'h08_0000 :
+                          vote_en[20] ? 24'h10_0000 :
+                          vote_en[21] ? 24'h20_0000 :
+                          vote_en[22] ? 24'h40_0000 :
+                          vote_en[23] ? 24'h80_0000 : 24'h00_0000
                           );
     
-    assign i_seek_sel = ( (~valid[0]) ? 16'h0001 :
-                          (~valid[1]) ? 16'h0002 :
-                          (~valid[2]) ? 16'h0004 :
-                          (~valid[3]) ? 16'h0008 :
-                          (~valid[4]) ? 16'h0010 :
-                          (~valid[5]) ? 16'h0020 :
-                          (~valid[6]) ? 16'h0040 :
-                          (~valid[7]) ? 16'h0080 :
-                          (~valid[ 8]) ? 16'h0100 :
-                          (~valid[ 9]) ? 16'h0200 :
-                          (~valid[10]) ? 16'h0400 :
-                          (~valid[11]) ? 16'h0800 :
-                          (~valid[12]) ? 16'h1000 :
-                          (~valid[13]) ? 16'h2000 :
-                          (~valid[14]) ? 16'h4000 :
-                          (~valid[15]) ? 16'h8000 : 16'h0000
+    assign i_seek_sel = ( (~valid[0]) ? 24'h00_0001 :
+                          (~valid[1]) ? 24'h00_0002 :
+                          (~valid[2]) ? 24'h00_0004 :
+                          (~valid[3]) ? 24'h00_0008 :
+                          (~valid[4]) ? 24'h00_0010 :
+                          (~valid[5]) ? 24'h00_0020 :
+                          (~valid[6]) ? 24'h00_0040 :
+                          (~valid[7]) ? 24'h00_0080 :
+                          (~valid[ 8]) ? 24'h00_0100 :
+                          (~valid[ 9]) ? 24'h00_0200 :
+                          (~valid[10]) ? 24'h00_0400 :
+                          (~valid[11]) ? 24'h00_0800 :
+                          (~valid[12]) ? 24'h00_1000 :
+                          (~valid[13]) ? 24'h00_2000 :
+                          (~valid[14]) ? 24'h00_4000 :
+                          (~valid[15]) ? 24'h00_8000 :
+                          (~valid[16]) ? 24'h01_0000 :
+                          (~valid[17]) ? 24'h02_0000 :
+                          (~valid[18]) ? 24'h04_0000 :
+                          (~valid[19]) ? 24'h08_0000 :
+                          (~valid[20]) ? 24'h10_0000 :
+                          (~valid[21]) ? 24'h20_0000 :
+                          (~valid[22]) ? 24'h40_0000 :
+                          (~valid[23]) ? 24'h80_0000 : 24'h00_0000
                           );
 
     always @(posedge clk or negedge rst_n)
@@ -502,135 +539,6 @@ module ENIGMA_PORT(/*autoarg*/
                                                .fetch_sel          (cur_sel_en),
                                                .i_payload          (i_seek_payload)
                                                );
-endmodule
-
-
-module ENIGMA_BUFFER(/*autoarg*/
-    // Outputs
-    ready_a, ready_b, valid_c, payload_c, id_c, qos_c,
-    // Inputs
-    clk, rst_n, payload_a, id_a, qos_a, valid_a, payload_b, id_b,
-    qos_b, valid_b, conflict_c, release_c, releaseid_c, ready_c
-    );
-
-    input                           clk;
-    input                           rst_n;
-    
-    // port A
-    input [127:0]                   payload_a;
-    input [4:0]                     id_a;
-    input [1:0]                     qos_a;
-    input                           valid_a;
-    output                          ready_a;
-
-    // port B
-    input [127:0]                   payload_b;
-    input [4:0]                     id_b;
-    input [1:0]                     qos_b;
-    input                           valid_b;
-    output                          ready_b;
-
-    // output port C
-    input                           conflict_c;
-    input                           release_c;
-    input [5:0]                     releaseid_c;
-
-    input                           ready_c;
-    output                          valid_c;
-    
-    output [127:0]                  payload_c;
-    output [5:0]                    id_c;
-    output [1:0]                    qos_c;
-
-    reg                             o_sel;
-
-    wire [127:0]                    payload_c_a;
-    wire [4:0]                      id_c_a;
-    wire [1:0]                      qos_c_a;
-    wire [3:0]                      cur_hi_qos_bin_a;
-
-    wire [127:0]                    payload_c_b;
-    wire [4:0]                      id_c_b;
-    wire [1:0]                      qos_c_b;
-    wire [3:0]                      cur_hi_qos_bin_b;
-
-    wire                            valid_c_a;
-    wire                            valid_c_b;
-    reg                             port_sel;     // 0: select A output    1: select B output
-    reg                             port_sel_ff;
-    wire                            port_sel_invert = (valid_c_a & port_sel) | (valid_c_b & ~port_sel);
-    wire                            qos_sel_invert  = (cur_hi_qos_bin_a^cur_hi_qos_bin_b) != 4'b0;
-
-    wire                            conflict_c_a = conflict_c & ~port_sel_ff;
-    wire                            conflict_c_b = conflict_c &  port_sel_ff;
-    wire                            release_c_a  = release_c & ~releaseid_c[5];
-    wire                            release_c_b  = release_c &  releaseid_c[5];
-    wire                            ready_c_a    = ready_c & ~port_sel;
-    wire                            ready_c_b    = ready_c &  port_sel;
-
-
-    assign payload_c = port_sel ? payload_c_b : payload_c_a;
-    assign id_c      = {port_sel, port_sel ? id_c_b : id_c_a};
-    assign qos_c     = port_sel ? qos_c_b : qos_c_a;
-    assign valid_c   = port_sel ? valid_c_b : valid_c_a;
-
-    always @(posedge clk or negedge rst_n)
-      if(~rst_n)
-        port_sel   <= 1'b0;
-      else if(qos_sel_invert)
-        port_sel   <= (cur_hi_qos_bin_b > cur_hi_qos_bin_a);
-      else if(port_sel_invert)
-        port_sel   <= ~port_sel;
-
-    always @(posedge clk or negedge rst_n)
-      if(~rst_n)
-        port_sel_ff   <= 1'b0;
-      else
-        port_sel_ff   <= port_sel;
-
-
-    
-
-    ENIGMA_PORT U_ENIGMA_PORT_A(
-                                // Outputs
-                                .ready_i          (ready_a          ),
-                                .valid_c          (valid_c_a        ),
-                                .payload_c        (payload_c_a      ),
-                                .id_c             (id_c_a           ),
-                                .qos_c            (qos_c_a          ),
-                                .cur_hi_qos_bin   (cur_hi_qos_bin_a ),
-                                // Inputs
-                                .clk              (clk              ),
-                                .rst_n            (rst_n            ),
-                                .payload_i        (payload_a        ),
-                                .id_i             (id_a             ),
-                                .qos_i            (qos_a            ),
-                                .valid_i          (valid_a          ),
-                                .conflict_c       (conflict_c_a     ),
-                                .release_c        (release_c_a      ),
-                                .releaseid_c      (releaseid_c[4:0] ),
-                                .ready_c          (ready_c_a        )
-                                );
-
-    ENIGMA_PORT U_ENIGMA_PORT_B(
-                                // Outputs
-                                .ready_i          (ready_b          ),
-                                .valid_c          (valid_c_b        ),
-                                .payload_c        (payload_c_b      ),
-                                .id_c             (id_c_b           ),
-                                .qos_c            (qos_c_b          ),
-                                .cur_hi_qos_bin   (cur_hi_qos_bin_b ),
-                                // Inputs
-                                .clk              (clk              ),
-                                .rst_n            (rst_n            ),
-                                .payload_i        (payload_b        ),
-                                .id_i             (id_b             ),
-                                .qos_i            (qos_b            ),
-                                .valid_i          (valid_b          ),
-                                .conflict_c       (conflict_c_b     ),
-                                .release_c        (release_c_b      ),
-                                .releaseid_c      (releaseid_c[4:0] ),
-                                .ready_c          (ready_c_b        )
-                                );
 
 endmodule
+
