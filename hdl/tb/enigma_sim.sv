@@ -42,6 +42,15 @@ module ENIGMA_SIM(/*autoarg*/
     bit                error;
     reg [15:0]         tick;
     
+    reg [5:0]          local_flit_nums;
+    wire               vld_c_o_en = (ready_c & valid_c);
+    wire [5:0]         local_flit_nums_new = local_flit_nums - vld_c_o_en + conflict_c + (valid_a & ready_a) + (valid_b & ready_b);
+    
+    always @(posedge clk or negedge rst_n)
+      if(~rst_n)
+        local_flit_nums   <= 5'b0;
+      else if(vld_c_o_en | conflict_c | (valid_a & ready_a) | (valid_b & ready_b))
+        local_flit_nums   <= local_flit_nums_new;
     
     chandle            app;
 
@@ -161,5 +170,6 @@ module ENIGMA_SIM(/*autoarg*/
     always @(posedge clk)
       if(rst_n & error)
         #100 $finish();
+
 
 endmodule
