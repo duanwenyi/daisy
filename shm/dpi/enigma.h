@@ -8,6 +8,7 @@ typedef struct ENIGMA_FLIT_S {
 	int id;
 	int qos;
 	int payload[4];
+    int tick;   //debug using
 }ENIGMA_FLIT, *ENIGMA_FLIT_p;
 
 typedef struct ENIGMA_PORT_SIGNAL_S{
@@ -65,6 +66,8 @@ typedef struct OUT_CONSTRAINT_S {
     int transfer_nums;  // group transfer numbers of FLIT
 }OUT_CONSTRAINT, *OUT_CONSTRAINT_p;
 
+#define ENIGMA_SCHE_MAX 3
+
 class EnigmaSim
 {
  public:
@@ -86,6 +89,7 @@ class EnigmaSim
     bool isIDPending(int id);
     bool isIDExist(int id);
     bool isIDUnique(int id);
+    bool isHighQos(int qos);
 
     int  getFirstPtr(int id);
     bool isIDNotFull(int id);

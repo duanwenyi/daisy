@@ -43,7 +43,7 @@ void EnigmaSim::setRandomSeed(int seed){
 }
 
 void EnigmaSim::showOCell(const char *info){
-    fprintf(stderr," +OCELL[%s]--------------- <%2x - %d>-<%8x %8x %8x %8x>  :: %s @%x\n",
+    fprintf(stderr," +OCELL[%s]--------------- <%2x - %d>-<%8x %8x %8x %8x > :: %s @%x\n",
             (ocell.id&0x20) ? "B":"A",
             ocell.id, ocell.qos, 
             ocell.payload[3], 
@@ -74,26 +74,31 @@ bool EnigmaSim::checkOCell(){
             check = false;
             showOCell("+ERROR: the ID is locked when sent out");
         }else{
-#if 1
-            int p = getFirstPtr(ocell.id);
-            if( (dutActive.at(p).id != ocell.id) ||
-                (dutActive.at(p).qos != ocell.qos) ||
-                (dutActive.at(p).payload[0] != ocell.payload[0]) ||
-                (dutActive.at(p).payload[1] != ocell.payload[1]) ||
-                (dutActive.at(p).payload[2] != ocell.payload[2]) ||
-                (dutActive.at(p).payload[3] != ocell.payload[3]) 
-                ){
+
+            if( isHighQos(ocell.qos) ){
+                int p = getFirstPtr(ocell.id);
+                if( (dutActive.at(p).id != ocell.id) ||
+                    (dutActive.at(p).qos != ocell.qos) ||
+                    (dutActive.at(p).payload[0] != ocell.payload[0]) ||
+                    (dutActive.at(p).payload[1] != ocell.payload[1]) ||
+                    (dutActive.at(p).payload[2] != ocell.payload[2]) ||
+                    (dutActive.at(p).payload[3] != ocell.payload[3]) 
+                    ){
+                    check = false;
+                }
+                if(check == false){
+                    if(isIDUnique(ocell.id)){
+                        showOCell("+ERROR: FLIT INFO not correct when ID is unique");
+                    }else{
+                        showOCell("+ERROR: FLIT INFO not correct when ID is not unique");
+                    }
+                    showFLIT( dutActive.at(p) );
+                }
+                
+            }else{
+                showOCell("+ERROR: FLIT is not high Qos when invoke");
                 check = false;
             }
-            if(check == false){
-                if(isIDUnique(ocell.id)){
-                    showOCell("+ERROR: FLIT INFO not correct when ID is unique");
-                }else{
-                    showOCell("+ERROR: FLIT INFO not correct when ID is not unique");
-                }
-                showFLIT( dutActive.at(p) );
-            }
-#endif
         }
     }else{
         showOCell("+ERROR: the FLIT is not exist");
@@ -230,7 +235,25 @@ bool EnigmaSim::isIDUnique(int id){
         return true;
     else
         return false;
+}
 
+bool EnigmaSim::isHighQos(int qos){
+    vector<ENIGMA_FLIT_S>::iterator iter = dutActive.begin();
+    int count = 0;
+
+    while( iter != dutActive.end()){
+        if( (*iter).qos > qos ){
+            if(getFirstPtr((*iter).id) == count){
+                if( (signal.tick - (*iter).tick) > ENIGMA_SCHE_MAX  ){
+                    return false;
+                }
+            }
+        }
+        count++;
+        iter++;
+    }
+
+    return true;
 }
 
 void EnigmaSim::loadTC(){
@@ -717,6 +740,7 @@ extern "C" {
 		if(sim->portA.size() > 0){
             //cell = sim->portA.back();
             cell = sim->portA.at(0);
+            cell.tick = sim->signal.tick;
             
             if( sim->isIDNotFull(cell.id) )
                 *valid_a = (rand()%4 != 0) && sim->genValidPortA(sim->signal.ready_a);
@@ -781,6 +805,7 @@ extern "C" {
 		if(sim->portB.size() > 0){
             //cell = sim->portB.back();
             cell = sim->portB.at(0);
+            cell.tick = sim->signal.tick;
 
             if( sim->isIDNotFull(cell.id) )
                 *valid_b = (rand()%4 != 0) && sim->genValidPortB(sim->signal.ready_b);
