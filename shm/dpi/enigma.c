@@ -615,7 +615,7 @@ void EnigmaSim::increasePortC(){
         
         if(out_constraint.at(0).transfer_nums == 0){
             out_constraint.erase( out_constraint.begin() );
-            fprintf(stderr," C Port FLIT Constraint finished ONE ! remaim %d\n", out_constraint.size());
+            fprintf(stderr," C Port FLIT Constraint finished ONE ! remaim %d @%x\n", out_constraint.size(), signal.tick);
             
         }
 
@@ -623,18 +623,23 @@ void EnigmaSim::increasePortC(){
             dutActive.empty() && dutPending.empty()
             ){
             out_constraint.clear();
-            fprintf(stderr," ---->TC stimulation is over ! Discard all C Port FLIT Constraint now !\n");
-            
-            if(error == 0){
-                fprintf(stderr," ---->TC PASS\n\n");
-
-                loadConstraint();
-            }else{
-                fprintf(stderr," ---->TC FAIL with %d ERROR\n", error);
-            }
+            fprintf(stderr," ---->TC stimulation is over ! Discard all C Port FLIT Constraint now ! @%x\n", signal.tick );
         }
     }
-   
+
+    if( portA.empty() && portB.empty() &&
+        dutActive.empty() && dutPending.empty()
+        ){
+        if(error == 0){
+            fprintf(stderr," ---->TC PASS\n\n");
+        }else{
+            fprintf(stderr," ---->TC FAIL with %d ERROR\n", error);
+        }
+        if(tc_list.size() > 0){
+            loadConstraint();
+        }
+    }
+    
 }
 
 bool EnigmaSim::genReadyPortC(){
@@ -953,7 +958,7 @@ extern "C" {
             sim->error++;
         }
 
-        if(sim->idle_det > 100){
+        if(sim->idle_det > 200){
             sim->showStatus();
             sim->idle_det = 0;
         }
