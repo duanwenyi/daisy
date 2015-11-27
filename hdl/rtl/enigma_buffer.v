@@ -417,9 +417,9 @@ module ENIGMA_BUFFER(/*autoarg*/
         genvar                      dd;
         for(dd=0; dd<ENIGMA_CELL_MAX; dd=dd+1)begin:ENIGMA_SIG_GEN
             // bug here !
-            assign i_seek_qos[dd] = ((port_attr[dd]&valid[dd]) | (i_seek_sel_b[dd]&ready_b) ) ? qos_b : qos_a;
-            assign i_seek_id[dd]  = ((port_attr[dd]&valid[dd]) | (i_seek_sel_b[dd]&ready_b) ) ? { vld_i_b,id_b}  : {~vld_i_a,id_a};
-            assign i_seek_payload[dd] = (i_seek_sel_a[dd]&ready_a) ? payload_a : payload_b;
+            assign i_seek_qos[dd] = ((port_attr[dd]&valid[dd]) | (i_seek_sel_b[dd]&vld_i_b) ) ? qos_b : qos_a;
+            assign i_seek_id[dd]  = ((port_attr[dd]&valid[dd]) | (i_seek_sel_b[dd]&vld_i_b) ) ? { vld_i_b,id_b}  : {~vld_i_a,id_a};
+            assign i_seek_payload[dd] = (i_seek_sel_a[dd]&vld_i_a) ? payload_a : payload_b;
 
             assign i_load_seq_num[dd] = (i_seek_sel_b[dd]&ready_b) ? o_seek_sum_det_b : o_seek_sum_det_a;
             

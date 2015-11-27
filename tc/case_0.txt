@@ -1,6 +1,8 @@
 # Port A in FLITs , format : A [ID] [Qos] {repeat times when using AM}
 AM 5  3 6
 A 24 2
+A 24 1
+A 9 3
 A 14 1
 A 14 0
 AM 8 1 15
