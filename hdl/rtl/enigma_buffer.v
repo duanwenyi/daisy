@@ -419,7 +419,7 @@ module ENIGMA_BUFFER(/*autoarg*/
             // bug here !
             assign i_seek_qos[dd] = ((port_attr[dd]&valid[dd]) | (i_seek_sel_b[dd]&ready_b) ) ? qos_b : qos_a;
             assign i_seek_id[dd]  = ((port_attr[dd]&valid[dd]) | (i_seek_sel_b[dd]&ready_b) ) ? { vld_i_b,id_b}  : {~vld_i_a,id_a};
-            assign i_seek_payload[dd] = (i_seek_sel_b[dd]&ready_b) ? payload_b : payload_a;
+            assign i_seek_payload[dd] = (i_seek_sel_a[dd]&ready_a) ? payload_a : payload_b;
 
             assign i_load_seq_num[dd] = (i_seek_sel_b[dd]&ready_b) ? o_seek_sum_det_b : o_seek_sum_det_a;
             
@@ -503,7 +503,8 @@ module ENIGMA_BUFFER(/*autoarg*/
     wire                            vld_o_sel_en   = vld_cur_sel_en & ~local_flit_empty;
     wire                            last_flit_out  = local_flit_single & vld_c_o_en & ~(i_seek_en|conflict_c);
     wire                            new_flit_sch   = vld_c_o_en & load_c_vote_en;
-    wire                            mark_load_c_vote = local_flit_single & (i_seek_en |release_c);
+    wire                            mark_load_c_vote = ~local_flit_empty & ~load_c_vote_en;
+    
     always @(posedge clk or negedge rst_n)
       if(~rst_n)
         load_c_vote_en   <= 1'b0;
