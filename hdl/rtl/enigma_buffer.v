@@ -1,48 +1,3 @@
-module ENIGMA_MEM (/*AUTOARG*/
-    // Outputs
-    o_payload,
-    // Inputs
-    clk, rst_n, load_sel, fetch_sel, i_payload
-    );
-    parameter  ENIGMA_CELL_MAX = 24;
-    input                        clk;
-    input                        rst_n;
-
-    input [ENIGMA_CELL_MAX-1:0]  load_sel;
-
-    input [ENIGMA_CELL_MAX-1:0]  fetch_sel;
-    
-    
-    input [127:0]                i_payload;
-    output [127:0]               o_payload;
-
-    reg [127:0]                  mem[ENIGMA_CELL_MAX-1:0];
-
-    generate
-        genvar                   cc;
-        for(cc=0; cc<ENIGMA_CELL_MAX; cc=cc+1)begin:ENIGMA_MEM_WRITE
-            always @(posedge clk)
-              if(load_sel[cc])
-                mem[cc]    <= i_payload;
-        end
-    endgenerate
-    
-    wire [127:0]               o_payload_s[ENIGMA_CELL_MAX-1:0];
-
-    generate
-        genvar                   i;
-        for(i=0; i<ENIGMA_CELL_MAX; i=i+1)begin:ENIGMA_MEM_READ
-            if(i == 0)
-              assign o_payload_s[i]   =  {128{fetch_sel[i]}} & mem[i];
-            else
-              assign o_payload_s[i]   = o_payload_s[i-1] | ({128{fetch_sel[i]}} & mem[i]);
-        end
-    endgenerate
-
-    assign o_payload = o_payload_s[ENIGMA_CELL_MAX-1];
-    
-endmodule
-
 module ENIGMA_CELL (/*AUTOARG*/
     // Outputs
     o_seek_sum, vote_en, vote_id, vote_qos, vote_qos_bin, valid,
@@ -298,7 +253,6 @@ module ENIGMA_BUFFER(/*autoarg*/
         //ready_b   <= port_sel & local_buf_not_full & ~hungry_det;
         ready_b   <= (~i_seek_sel_full |  port_sel) & local_buf_not_full & ~hungry_det;
 
-    wire [ENIGMA_CELL_MAX-1:0]      cur_sel_en;
     wire [ENIGMA_CELL_MAX-1:0]      port_attr;
     reg [ENIGMA_CELL_MAX-1:0]       pre_sel_en;
     reg                             co_port_sel;   // 0: select A vote to out   1: select B vote to out
@@ -429,9 +383,6 @@ module ENIGMA_BUFFER(/*autoarg*/
             assign i_load_seq_num[dd] = (i_seek_sel_b[dd]&ready_b) ? o_seek_sum_det_b : o_seek_sum_det_a;
             
             if(dd == 0)begin
-                assign vote_id_s[dd]  = vote_id[dd]  & {6{cur_sel_en[dd]}};
-                assign vote_qos_s[dd] = vote_qos[dd] & {2{cur_sel_en[dd]}};
-
                 assign vote_id_a_s[dd]  = vote_id[dd]  & {6{cur_sel_oa[dd]}};
                 assign vote_qos_a_s[dd] = vote_qos[dd] & {2{cur_sel_oa[dd]}};
 
@@ -443,9 +394,6 @@ module ENIGMA_BUFFER(/*autoarg*/
 
                 assign cur_hi_qos_bin_s[dd] = vote_qos_bin[dd];
             end else begin
-                assign vote_id_s[dd]  = vote_id_s[dd-1]  | (vote_id[dd]  & {6{cur_sel_en[dd]}});
-                assign vote_qos_s[dd] = vote_qos_s[dd-1] | (vote_qos[dd] & {2{cur_sel_en[dd]}});
-
                 assign vote_id_a_s[dd]  = vote_id_a_s[dd-1]  | (vote_id[dd]  & {6{cur_sel_oa[dd]}});
                 assign vote_qos_a_s[dd] = vote_qos_a_s[dd-1] | (vote_qos[dd] & {2{cur_sel_oa[dd]}});
 
@@ -479,6 +427,7 @@ module ENIGMA_BUFFER(/*autoarg*/
 
     wire                            cur_have_oa_vote = |cur_sel_oa;
     wire                            cur_have_ob_vote = |cur_sel_ob;
+    // here have some bug
     wire                            cur_have_vote    = cur_have_oa_vote & ~co_port_sel | cur_have_ob_vote & co_port_sel;
 
     wire                            co_port_sel_invert = cur_have_oa_vote & co_port_sel | cur_have_ob_vote & ~co_port_sel;
@@ -552,39 +501,11 @@ module ENIGMA_BUFFER(/*autoarg*/
                           (vote_en[0]  & port_attr[0] ) ? 24'h00_0001  : 24'h00_0000
                           );
 
-    // should vote next after pre
-    assign cur_sel_en = ( vote_en[0] ? 24'h00_0001 :
-                          vote_en[1] ? 24'h00_0002 :
-                          vote_en[2] ? 24'h00_0004 :
-                          vote_en[3] ? 24'h00_0008 :
-                          vote_en[4] ? 24'h00_0010 :
-                          vote_en[5] ? 24'h00_0020 :
-                          vote_en[6] ? 24'h00_0040 :
-                          vote_en[7] ? 24'h00_0080 :
-                          vote_en[ 8] ? 24'h00_0100 :
-                          vote_en[ 9] ? 24'h00_0200 :
-                          vote_en[10] ? 24'h00_0400 :
-                          vote_en[11] ? 24'h00_0800 :
-                          vote_en[12] ? 24'h00_1000 :
-                          vote_en[13] ? 24'h00_2000 :
-                          vote_en[14] ? 24'h00_4000 :
-                          vote_en[15] ? 24'h00_8000 :
-                          vote_en[16] ? 24'h01_0000 :
-                          vote_en[17] ? 24'h02_0000 :
-                          vote_en[18] ? 24'h04_0000 :
-                          vote_en[19] ? 24'h08_0000 :
-                          vote_en[20] ? 24'h10_0000 :
-                          vote_en[21] ? 24'h20_0000 :
-                          vote_en[22] ? 24'h40_0000 :
-                          vote_en[23] ? 24'h80_0000 : 24'h00_0000
-                          );
-    
     always @(posedge clk or negedge rst_n)
       if(~rst_n)
         pre_sel_en   <= {ENIGMA_CELL_MAX{1'b0}};
       else
         pre_sel_en   <= co_port_sel ? cur_sel_ob : cur_sel_oa;
-        //pre_sel_en   <= (|local_flit_nums[4:1] | (local_flit_nums[0] & load_c_vote_en)) ? cur_sel_en : i_seek_sel;
 
     always @(posedge clk or negedge rst_n)
       if(~rst_n)
@@ -655,18 +576,7 @@ module ENIGMA_BUFFER(/*autoarg*/
       //  payload_c   <= i_seek_payload;
 
   
-/* -----\/----- EXCLUDED -----\/-----
-    ENIGMA_MEM #(ENIGMA_CELL_MAX) U_ENIGMA_MEM(// Outputs
-                                               .o_payload          (cur_sel_payload),
-                                               // Inputs
-                                               .clk                (clk),
-                                               .rst_n              (rst_n),
-                                               .load_sel           (i_seek_sel & {ENIGMA_CELL_MAX{i_seek_en}} ),
-                                               .fetch_sel          (cur_sel_en),
-                                               .i_payload          (i_seek_payload)
-                                               );
- -----/\----- EXCLUDED -----/\----- */
-    // MEMORY
+    // ---------------------- MEMORY ----------------------------------------
     reg [127:0]                  mem[ENIGMA_CELL_MAX-1:0];
 
     generate
@@ -678,21 +588,11 @@ module ENIGMA_BUFFER(/*autoarg*/
         end
     endgenerate
     
-    wire [127:0]               o_payload_s[ENIGMA_CELL_MAX-1:0];
-    generate
-        genvar                   i;
-        for(i=0; i<ENIGMA_CELL_MAX; i=i+1)begin:ENIGMA_MEM_READ
-            if(i == 0)
-              assign o_payload_s[i]   =  {128{cur_sel_en[i]}} & mem[i];
-            else
-              assign o_payload_s[i]   = o_payload_s[i-1] | ({128{cur_sel_en[i]}} & mem[i]);
-        end
-    endgenerate
-
     wire [127:0]               o_payload_oa_s[ENIGMA_CELL_MAX-1:0];
     wire [127:0]               o_payload_ob_s[ENIGMA_CELL_MAX-1:0];
     generate
-        for(i=0; i<ENIGMA_CELL_MAX; i=i+1)begin:ENIGMA_MEM_READ2
+        genvar                   i;
+        for(i=0; i<ENIGMA_CELL_MAX; i=i+1)begin:ENIGMA_MEM_READ
             if(i == 0)begin
                 assign o_payload_oa_s[i]   =  {128{cur_sel_oa[i]}} & mem[i];
                 assign o_payload_ob_s[i]   =  {128{cur_sel_ob[i]}} & mem[i];
@@ -705,8 +605,7 @@ module ENIGMA_BUFFER(/*autoarg*/
 
     assign o_payload_oa = o_payload_oa_s[ENIGMA_CELL_MAX-1];
     assign o_payload_ob = o_payload_ob_s[ENIGMA_CELL_MAX-1];
-    
-    assign cur_sel_payload = o_payload_s[ENIGMA_CELL_MAX-1];
+    // ---------------------- MEMORY ----------------------------------------
 
 endmodule
 
