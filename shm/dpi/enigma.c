@@ -245,7 +245,14 @@ bool EnigmaSim::isHighQos(int qos){
         if( (*iter).qos > qos ){
             if(getFirstPtr((*iter).id) == count){
                 if( (signal.tick - (*iter).tick) > ENIGMA_SCHE_MAX  ){
-                    return false;
+                    if( (*iter).id == portC.back().id  && 
+                        ((signal.tick - portC.back().tick ) < ENIGMA_SCHE_MAX)
+                        ){
+                        showOCell("+Warning: FLIT Qos may not the highest when a IDs group jump to high Qos");
+                    }else{
+                        showOCell("+Warning: FLIT Qos would not be the highest when a IDs group jump to high Qos");
+                        return false;
+                    }
                 }
             }
         }
@@ -914,6 +921,7 @@ extern "C" {
 			sim->ocell.payload[1] = sim->signal.payload_c_1;
 			sim->ocell.payload[2] = sim->signal.payload_c_2;
 			sim->ocell.payload[3] = sim->signal.payload_c_3;
+            sim->ocell.tick       = sim->signal.tick;
 
 			sim->pre_out_vld_mark = VALID_OUT;
 

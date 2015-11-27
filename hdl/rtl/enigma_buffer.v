@@ -177,7 +177,7 @@ module ENIGMA_CELL (/*AUTOARG*/
       else if(invoke_qos_bin)
         vote_qos_bin    <= vote_qos_bin_s;
 
-    wire           vote_en_mix = ( (|(vote_qos_bin & cur_hi_qos_bin)) & 
+    wire           vote_en_mix = ( ((|(vote_qos_bin & cur_hi_qos_bin)) & ~lock_en_hit) & 
                                    ~ (cur_c_o_en | delect_en_hit_the_id) &
                                    valid & ~lock);
     always @(posedge clk or negedge rst_n)
@@ -271,9 +271,11 @@ module ENIGMA_BUFFER(/*autoarg*/
     wire                            local_flit_empty    = local_flit_nums == 5'b0;
     wire                            local_flit_single   = local_flit_nums == 5'b1;
     wire [5:0]                      local_flit_nums_new = local_flit_nums + (valid_a & ready_a) + (valid_b & ready_b) - vld_c_o_en  + conflict_c;
-    wire                            local_buf_not_full  = ( (local_flit_nums_new < ENIGMA_CELL_MAX) & 
-                                                            ~(&valid) &
-                                                            ~((local_flit_nums > 5'd20 ) & valid_a & valid_b )
+    wire                            local_buf_not_full  = ~((local_flit_nums_new == ENIGMA_CELL_MAX) |
+                                                            ((local_flit_nums_new == (ENIGMA_CELL_MAX -1)) & ~delect_en & i_seek_en) |
+                                                            ((local_flit_nums_new == (ENIGMA_CELL_MAX -2)) & ~delect_en & (vld_i_a & vld_i_b) ) |
+                                                            (&valid) 
+                                                            //~((local_flit_nums > (ENIGMA_CELL_MAX - 4) ) & valid_a & valid_b ) 
                                                             );
 
     //wire                            port_sel_invert = ~(valid_a ^ valid_b);
@@ -415,11 +417,11 @@ module ENIGMA_BUFFER(/*autoarg*/
         genvar                      dd;
         for(dd=0; dd<ENIGMA_CELL_MAX; dd=dd+1)begin:ENIGMA_SIG_GEN
             // bug here !
-            assign i_seek_qos[dd] = ((port_attr[dd]&valid[dd] | i_seek_sel_b[dd])&vld_i_b ) ? qos_b : qos_a;
-            assign i_seek_id[dd]  = ((port_attr[dd]&valid[dd] | i_seek_sel_b[dd])&vld_i_b ) ? { valid_b,id_b}  : {~valid_a,id_a};
-            assign i_seek_payload[dd] = (i_seek_sel_b[dd]&vld_i_b) ? payload_b : payload_a;
+            assign i_seek_qos[dd] = ((port_attr[dd]&valid[dd]) | (i_seek_sel_b[dd]&ready_b) ) ? qos_b : qos_a;
+            assign i_seek_id[dd]  = ((port_attr[dd]&valid[dd]) | (i_seek_sel_b[dd]&ready_b) ) ? { vld_i_b,id_b}  : {~vld_i_a,id_a};
+            assign i_seek_payload[dd] = (i_seek_sel_b[dd]&ready_b) ? payload_b : payload_a;
 
-            assign i_load_seq_num[dd] = (i_seek_sel_b[dd]&vld_i_b) ? o_seek_sum_det_b : o_seek_sum_det_a;
+            assign i_load_seq_num[dd] = (i_seek_sel_b[dd]&ready_b) ? o_seek_sum_det_b : o_seek_sum_det_a;
             
             if(dd == 0)begin
                 assign vote_id_s[dd]  = vote_id[dd];
