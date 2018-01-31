@@ -1,2 +1,2 @@
 # daisy
-A nice girl monitor your life
+A nice user define signal monitor for EDA tools
