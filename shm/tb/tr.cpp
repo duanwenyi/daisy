@@ -129,9 +129,11 @@ int main(int argc, char **argv)
             rp = replace_all_distinct(rp,"o","0");
             rp = replace_all_distinct(rp,"i","1");
             rp = replace_all_distinct(rp,"l","1");
-            rp = replace_all_distinct(rp,"h","11");
-            rp = replace_all_distinct(rp,"x","6");
-            
+            rp = replace_all_distinct(rp,"h","11");	
+		
+	    rp = replace_all_distinct(rp,"u","11");
+	    rp = replace_all_distinct(rp,"6","b");	
+	    rp = replace_all_distinct(rp,"x","6");            
             result.push_back(rp);
         }
 
