@@ -115,7 +115,7 @@ int main(int argc, char **argv)
         if(sp.size() == 16){
             vect_mode = 1;
             //cout << " vect_mode detected " << endl;
-        }else if(sp.size() == (w*h)){
+        }else if( (sp.size() == w) || (sp.size() == (w*h)) ){
             cout << " full detected " << endl;
         }else if(sp.size() != 1){
             cout << "check value @ " << line << " val is : " <<  sp[0] << " size :" << sp.size() << endl;
@@ -132,8 +132,10 @@ int main(int argc, char **argv)
             rp = replace_all_distinct(rp,"h","11");	
 		
 	    rp = replace_all_distinct(rp,"u","11");
+	if(!vect_mode){
 	    rp = replace_all_distinct(rp,"6","b");	
 	    rp = replace_all_distinct(rp,"x","6");            
+	}
             result.push_back(rp);
         }
 
